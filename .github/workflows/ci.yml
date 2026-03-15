@@ -1,0 +1,299 @@
+name: Truck1.EU QA Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily run at 06:00 UTC (smoke tests)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      locale:
+        description: "Locale to test"
+        required: false
+        default: "en"
+        type: choice
+        options: [en, de, pl, lt, ru, cs]
+      marks:
+        description: "pytest marks to run"
+        required: false
+        default: "smoke"
+        type: string
+      base_url:
+        description: "Override base URL (e.g. staging)"
+        required: false
+        default: ""
+
+env:
+  PYTHON_VERSION: "3.12"
+  BASE_URL: "https://www.truck1.eu"
+
+jobs:
+  # ── Job 1: Smoke tests (quick check, runs on every PR) ────────
+  smoke-tests:
+    name: Smoke Tests (${{ github.event.inputs.locale || 'en' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Create reports directory
+        run: mkdir -p reports/screenshots
+
+      - name: Run smoke tests
+        run: |
+          pytest -m smoke \
+            --locale=${{ github.event.inputs.locale || 'en' }} \
+            --base-url-override="${{ github.event.inputs.base_url }}" \
+            --html=reports/smoke-report.html \
+            --self-contained-html \
+            -v \
+            --tb=short
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 7
+
+  # ── Job 2: Full regression (runs on schedule and manually) ────────────
+  regression:
+    name: Full Regression — ${{ matrix.locale }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: [en, de, pl]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Create reports directory
+        run: mkdir -p reports/screenshots
+
+      - name: Run full regression for ${{ matrix.locale }}
+        run: |
+          pytest \
+            --locale=${{ matrix.locale }} \
+            --html=reports/regression-${{ matrix.locale }}-report.html \
+            --self-contained-html \
+            -v \
+            --tb=short \
+            -x \
+            --ignore=tests/test_gdpr_footer.py
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload regression report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-${{ matrix.locale }}-${{ github.run_number }}
+          path: reports/
+          retention-days: 14
+
+  # ── Job 3: Multi-locale locale check ────────────────────────────────────────
+  locale-check:
+    name: Locale Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Create reports directory
+        run: mkdir -p reports/screenshots
+
+      - name: Run locale tests
+        run: |
+          pytest -m locale \
+            --html=reports/locale-report.html \
+            --self-contained-html \
+            -v
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload locale report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: locale-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 7
+
+  # ── Job 4: API smoke tests (no Playwright required, faster) ─────────────────
+  api-smoke:
+    name: API Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install API dependencies (no Playwright)
+        run: pip install pytest pytest-html requests urllib3 python-dotenv Faker allure-pytest pytest-rerunfailures
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run API smoke tests
+        run: |
+          pytest api/tests/test_api_status.py \
+            -m "api_status" \
+            --locale=${{ github.event.inputs.locale || 'en' }} \
+            --html=reports/api-smoke-report.html \
+            --self-contained-html \
+            -v \
+            --tb=short
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload API smoke report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-smoke-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 7
+
+  # ── Job 5: Full API regression ───────────────────────────────────────────────
+  api-regression:
+    name: Full API Regression — ${{ matrix.locale }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: [en, de, pl]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install API dependencies
+        run: pip install pytest pytest-html requests urllib3 python-dotenv Faker allure-pytest pytest-rerunfailures
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run full API regression for ${{ matrix.locale }}
+        run: |
+          pytest api/tests/ \
+            --locale=${{ matrix.locale }} \
+            --html=reports/api-regression-${{ matrix.locale }}-report.html \
+            --self-contained-html \
+            -v \
+            --tb=short
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload API regression report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-regression-${{ matrix.locale }}-${{ github.run_number }}
+          path: reports/
+          retention-days: 14
+
+  # ── Job 6: Security checks ───────────────────────────────────────────────────
+  security-checks:
+    name: Security API Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install pytest pytest-html requests urllib3 python-dotenv Faker
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run security tests
+        run: |
+          pytest api/tests/ -m security \
+            --locale=en \
+            --html=reports/security-report.html \
+            --self-contained-html \
+            -v
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 30

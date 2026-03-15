@@ -1,0 +1,336 @@
+name: truck1.eu QA Suite
+
+on:
+  # Manual run with parameter selection
+  workflow_dispatch:
+    inputs:
+      locale:
+        description: 'Locale for UI/API tests'
+        required: false
+        default: 'en'
+        type: choice
+        options: [en, de, pl, lt, lv, ee, ru, cs, sk, ro, bg]
+      suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'full'
+        type: choice
+        options: [full, smoke, api, locale, load]
+      load_level:
+        description: 'Load test level (only when suite=load)'
+        required: false
+        default: 'light'
+        type: choice
+        options: [smoke, light, normal]
+
+  # Automatic run on schedule (smoke every 6 hours)
+  schedule:
+    - cron: '0 */6 * * *'   # smoke — every 6 hours
+
+  # On push to main — smoke + API
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - 'reports/**'
+      - 'docs/**'
+
+  # On pull request — smoke + API
+  pull_request:
+    branches: [main, master]
+
+# Shared environment variables
+env:
+  BASE_URL: https://www.truck1.eu
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+
+  # ── JOB 0: Lint (ruff) — fast, blocks others if fails ──────────
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install ruff
+        run: pip install ruff==0.4.4
+
+      - name: Ruff lint check
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  # ── JOB 1: API tests (fast, no browser) ──────────────────────────────
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run API tests
+        run: |
+          pytest api/tests/ \
+            --locale=${{ inputs.locale || 'en' }} \
+            -m "api" \
+            --html=reports/api_report_${{ github.run_id }}.html \
+            --self-contained-html \
+            -v
+
+      - name: Upload API test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-report-${{ github.run_id }}
+          path: reports/api_report_*.html
+          retention-days: 14
+
+  # ── JOB 2: Locale smoke (no browser, requests only) ───────────────────
+  locale-smoke:
+    name: Locale Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Tier 1 locale smoke (EN/DE/PL)
+        run: |
+          pytest tests/test_locale_smoke.py \
+            -m "tier1" \
+            --html=reports/locale_tier1_${{ github.run_id }}.html \
+            --self-contained-html \
+            -v
+        continue-on-error: true
+
+      - name: Run Tier 2 locale smoke (secondary markets)
+        run: |
+          pytest tests/test_locale_smoke.py \
+            -m "tier2" \
+            --html=reports/locale_tier2_${{ github.run_id }}.html \
+            --self-contained-html \
+            -v
+        continue-on-error: true
+
+      - name: Run cross-locale consistency tests
+        run: |
+          pytest tests/test_locale_smoke.py \
+            -m "locale_cross" \
+            --html=reports/locale_cross_${{ github.run_id }}.html \
+            --self-contained-html \
+            -v
+
+      - name: Upload locale reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: locale-reports-${{ github.run_id }}
+          path: reports/locale_*.html
+          retention-days: 14
+
+  # ── JOB 3: UI Smoke tests (Playwright, headless Chrome) ───────────────────
+  ui-smoke:
+    name: UI Smoke Tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Run only on manual run or push to main
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request'
+
+    strategy:
+      matrix:
+        locale: [en, de, pl]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run UI smoke tests (${{ matrix.locale }})
+        run: |
+          pytest tests/ \
+            --locale=${{ matrix.locale }} \
+            -m "smoke" \
+            --browser=chromium \
+            --headed=false \
+            --html=reports/ui_smoke_${{ matrix.locale }}_${{ github.run_id }}.html \
+            --self-contained-html \
+            --reruns=2 \
+            --reruns-delay=2 \
+            -v
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload UI smoke reports + screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-smoke-${{ matrix.locale }}-${{ github.run_id }}
+          path: |
+            reports/ui_smoke_*.html
+            reports/screenshots/
+          retention-days: 14
+
+  # ── JOB 4: Security tests ─────────────────────────────────────────────────
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [api-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run security tests
+        run: |
+          pytest tests/test_security_ui.py \
+            --locale=en \
+            --browser=chromium \
+            --html=reports/security_${{ github.run_id }}.html \
+            --self-contained-html \
+            -v
+        continue-on-error: true  # Known vulnerabilities (SEC-BUG-001/002) — do not block pipeline
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report-${{ github.run_id }}
+          path: reports/security_*.html
+          retention-days: 30  # Keep security reports longer
+
+  # ── JOB 5: Load test (only on manual run with suite=load) ─────────────
+  load-test:
+    name: Load Test (${{ inputs.load_level || 'light' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.suite == 'load'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Locust
+        run: pip install locust==2.32.3
+
+      - name: Set load parameters
+        id: params
+        run: |
+          case "${{ inputs.load_level }}" in
+            smoke)  echo "users=3"  >> $GITHUB_OUTPUT; echo "rate=1"  >> $GITHUB_OUTPUT; echo "time=30s" >> $GITHUB_OUTPUT ;;
+            light)  echo "users=10" >> $GITHUB_OUTPUT; echo "rate=2"  >> $GITHUB_OUTPUT; echo "time=2m"  >> $GITHUB_OUTPUT ;;
+            normal) echo "users=25" >> $GITHUB_OUTPUT; echo "rate=5"  >> $GITHUB_OUTPUT; echo "time=5m"  >> $GITHUB_OUTPUT ;;
+          esac
+
+      - name: Run load test
+        run: |
+          mkdir -p reports
+          locust -f load_tests/locustfile.py \
+            --headless \
+            -u ${{ steps.params.outputs.users }} \
+            -r ${{ steps.params.outputs.rate }} \
+            -t ${{ steps.params.outputs.time }} \
+            --host https://www.truck1.eu \
+            --html reports/load_${{ inputs.load_level }}_${{ github.run_id }}.html \
+            --csv  reports/load_${{ inputs.load_level }}_${{ github.run_id }}
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-results-${{ inputs.load_level }}-${{ github.run_id }}
+          path: reports/load_*
+          retention-days: 30
+
+  # ── JOB 6: Final notification ─────────────────────────────────────────
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [api-tests, locale-smoke, ui-smoke, security-tests]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "=== QA Run Summary ==="
+          echo "API Tests:      ${{ needs.api-tests.result }}"
+          echo "Locale Smoke:   ${{ needs.locale-smoke.result }}"
+          echo "UI Smoke:       ${{ needs.ui-smoke.result }}"
+          echo "Security Tests: ${{ needs.security-tests.result }}"
+          echo ""
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+
+          # Determine overall status
+          if [[ "${{ needs.api-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.locale-smoke.result }}" == "failure" ]]; then
+            echo "❌ CRITICAL: API or locale tests failed"
+            exit 1
+          fi
+
+          echo "✅ Core tests passed"

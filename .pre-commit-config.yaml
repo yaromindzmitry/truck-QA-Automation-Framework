@@ -1,0 +1,39 @@
+repos:
+  # ── Standard hooks ────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace        # Remove trailing whitespace
+      - id: end-of-file-fixer          # File must end with newline
+      - id: check-yaml                 # Validate YAML files
+      - id: check-toml                 # Validate pyproject.toml
+      - id: check-added-large-files    # Block files > 500KB (screenshots, etc.)
+        args: ['--maxkb=500']
+      - id: check-merge-conflict       # Find <<<<<<< markers in code
+      - id: detect-private-key         # ❗ Block private keys
+      - id: no-commit-to-branch        # Can't commit directly to main/master
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # ── Secret detection ─────────────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '\.env\.example$|CONTRIBUTING\.md$'
+
+  # ── Ruff (linting + isort) ───────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]                  # Auto-fix where possible
+      - id: ruff-format                # Formatting (black replacement)
+
+  # ── Check .env files ─────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']

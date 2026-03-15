@@ -1,0 +1,53 @@
+[tool.ruff]
+# Target Python version
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (unused imports, variables)
+    "I",   # isort (import order)
+    "B",   # bugbear (common errors)
+    "UP",  # pyupgrade (outdated syntax)
+    "N",   # pep8-naming
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long — controlled by line-length
+    "B008",  # do not perform function calls in default arguments (pytest fixtures)
+    "B011",  # do not assert False — allowed in tests
+    "N802",  # function name should be lowercase — pytest fixtures may be UPPER
+    "SIM117", # merge with-statements — sometimes inconvenient in Playwright
+]
+# Don't touch __pycache__, venv, reports
+exclude = [
+    ".venv", "venv", "__pycache__", ".pytest_cache",
+    "reports", "allure-results", "allure-report",
+    "playwright-report", "test-results",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# In tests: long lines in assert messages ok, magic values ok
+"tests/*.py" = ["E501", "S101"]
+"api/tests/*.py" = ["E501", "S101"]
+"conftest.py" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pages", "utils", "api"]
+force-sort-within-sections = true
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+    \.venv
+  | venv
+  | __pycache__
+  | \.pytest_cache
+  | reports
+)/
+'''
