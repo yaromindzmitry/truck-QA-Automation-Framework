@@ -10,11 +10,11 @@ Covers:
 """
 
 import requests
+
 from .base_client import Truck1ApiClient
 
 
 class SearchClient(Truck1ApiClient):
-
     # ── Search ────────────────────────────────────────────────────────────────
 
     def search_listings(

@@ -59,9 +59,10 @@ Note: Cloudflare behavior:
 
 import re
 import time
+
 import pytest
 
-from api.client import ListingsClient, SearchClient, REACHABLE
+from api.client import REACHABLE, ListingsClient, SearchClient
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -127,63 +128,64 @@ DB_INFO_PATTERNS = [
 
 # SQL payloads for error-based (provoke syntax error)
 ERROR_BASED_PAYLOADS = [
-    ("single_quote",     "'"),
-    ("double_quote",     '"'),
-    ("backtick",         "`"),
-    ("unmatched_paren",  "')"),
-    ("double_dash",      "'--"),
-    ("hash",             "'#"),
-    ("slash_star",       "'/*"),
-    ("semicolon",        "';"),
-    ("concat_mysql",     "' concat(0x7e,version()) --"),
-    ("extractvalue",     "' AND extractvalue(1,concat(0x7e,(SELECT version()))) --"),
-    ("updatexml",        "' AND updatexml(1,concat(0x7e,(SELECT version())),1) --"),
-    ("pg_error",         "' AND 1=CAST(version() AS int) --"),
-    ("mssql_error",      "' AND 1=CONVERT(int,(SELECT @@version)) --"),
+    ("single_quote", "'"),
+    ("double_quote", '"'),
+    ("backtick", "`"),
+    ("unmatched_paren", "')"),
+    ("double_dash", "'--"),
+    ("hash", "'#"),
+    ("slash_star", "'/*"),
+    ("semicolon", "';"),
+    ("concat_mysql", "' concat(0x7e,version()) --"),
+    ("extractvalue", "' AND extractvalue(1,concat(0x7e,(SELECT version()))) --"),
+    ("updatexml", "' AND updatexml(1,concat(0x7e,(SELECT version())),1) --"),
+    ("pg_error", "' AND 1=CAST(version() AS int) --"),
+    ("mssql_error", "' AND 1=CONVERT(int,(SELECT @@version)) --"),
 ]
 
 # SQL payloads for time-based (provoke delay)
 TIME_BASED_PAYLOADS = [
-    ("mysql_sleep",      "' AND SLEEP(3) --"),
-    ("pg_sleep",         "'; SELECT pg_sleep(3) --"),
-    ("mssql_waitfor",    "'; WAITFOR DELAY '0:0:3' --"),
-    ("heavy_union",      "' UNION SELECT SLEEP(3),2,3 --"),
-    ("benchmark",        "' AND BENCHMARK(5000000,MD5('test')) --"),
+    ("mysql_sleep", "' AND SLEEP(3) --"),
+    ("pg_sleep", "'; SELECT pg_sleep(3) --"),
+    ("mssql_waitfor", "'; WAITFOR DELAY '0:0:3' --"),
+    ("heavy_union", "' UNION SELECT SLEEP(3),2,3 --"),
+    ("benchmark", "' AND BENCHMARK(5000000,MD5('test')) --"),
 ]
 
 # Boolean-based payloads — TRUE/FALSE pair for each test
 BOOLEAN_PAIRS = [
-    ("and_true",  "Volvo' AND '1'='1",  "Volvo' AND '1'='2"),
-    ("or_true",   "Volvo' OR 'x'='x",   "Volvo' OR 'x'='y"),
-    ("comment",   "Volvo'-- -",          "Volvo'AND 1=2-- -"),
+    ("and_true", "Volvo' AND '1'='1", "Volvo' AND '1'='2"),
+    ("or_true", "Volvo' OR 'x'='x", "Volvo' OR 'x'='y"),
+    ("comment", "Volvo'-- -", "Volvo'AND 1=2-- -"),
 ]
 
 # NoSQL payloads
 NOSQL_PAYLOADS = [
-    ("mongo_gt",     '{"$gt": ""}'),
-    ("mongo_ne",     '{"$ne": null}'),
-    ("mongo_where",  '{"$where": "sleep(1)"}'),
-    ("mongo_regex",  '{"$regex": ".*"}'),
-    ("array_ne",     "[$ne]=1"),
-    ("array_gt",     "[$gt]="),
-    ("json_true",    '{"price": {"$gt": 0}}'),
+    ("mongo_gt", '{"$gt": ""}'),
+    ("mongo_ne", '{"$ne": null}'),
+    ("mongo_where", '{"$where": "sleep(1)"}'),
+    ("mongo_regex", '{"$regex": ".*"}'),
+    ("array_ne", "[$ne]=1"),
+    ("array_gt", "[$gt]="),
+    ("json_true", '{"price": {"$gt": 0}}'),
 ]
 
 # ORM / Framework-specific payloads
 ORM_PAYLOADS = [
-    ("django_extra",   "' extra select=1 --"),
-    ("rails_hash",     "make[0]=Volvo&make[1]=DAF"),
+    ("django_extra", "' extra select=1 --"),
+    ("rails_hash", "make[0]=Volvo&make[1]=DAF"),
     ("nested_bracket", "filter[make]=Volvo&filter[price][$gt]=0"),
-    ("dot_notation",   "make.name=Volvo"),
+    ("dot_notation", "make.name=Volvo"),
 ]
 
 # Acceptable response codes (server is alive)
 SAFE_CODES = (*REACHABLE, 400, 404, 410, 422)
 TIME_THRESHOLD_SECONDS = 4.0  # above — suspicious delay
-MAX_ALLOWED_DELAY_MS = 3500   # ms — threshold for time-based test
+MAX_ALLOWED_DELAY_MS = 3500  # ms — threshold for time-based test
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def client():
@@ -217,6 +219,7 @@ def _has_db_info(text: str) -> tuple[bool, str]:
 # TC_DB01–TC_DB03: Error-Based SQL Injection
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.db
 class TestErrorBasedSqlInjection:
     """
@@ -230,9 +233,9 @@ class TestErrorBasedSqlInjection:
     def test_no_db_error_in_search(self, search: SearchClient, name: str, payload: str):
         """TC_DB01: DB error  database  is visible in searchom response."""
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"ERROR-BASED SQLi [{name}]: 500 on search! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"ERROR-BASED SQLi [{name}]: 500 on search! Payload: {repr(payload)}"
         found, pattern = _has_db_error(resp.text)
         assert not found, (
             f"DB ERROR LEAKED [{name}] in search response!\n"
@@ -243,35 +246,37 @@ class TestErrorBasedSqlInjection:
     def test_no_db_error_in_catalog_make(self, client: ListingsClient, name: str, payload: str):
         """TC_DB01: DB error  database is not visible with  injection  and   in parameter make."""
         resp = client.get_sale_catalog(make=payload)
-        assert resp.status_code != 500, (
-            f"ERROR-BASED SQLi [{name}]: 500 on make filter! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"ERROR-BASED SQLi [{name}]: 500 on make filter! Payload: {repr(payload)}"
         found, pattern = _has_db_error(resp.text)
         assert not found, (
             f"DB ERROR LEAKED [{name}] in catalog (make) response!\n"
             f"Pattern: '{pattern}'\nPayload: {repr(payload)}"
         )
 
-    @pytest.mark.parametrize("name,payload", [
-        ("year_from",   "' OR 1=1 --"),
-        ("year_to",     "2020 UNION SELECT NULL --"),
-        ("price_from",  "0 AND extractvalue(1,version())"),
-        ("price_to",    "' AND updatexml(1,version(),1) --"),
-    ])
-    def test_no_db_error_in_numeric_filters(
-        self, client: ListingsClient, name: str, payload: str
-    ):
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("year_from", "' OR 1=1 --"),
+            ("year_to", "2020 UNION SELECT NULL --"),
+            ("price_from", "0 AND extractvalue(1,version())"),
+            ("price_to", "' AND updatexml(1,version(),1) --"),
+        ],
+    )
+    def test_no_db_error_in_numeric_filters(self, client: ListingsClient, name: str, payload: str):
         """TC_DB01: DB error  database is not visible with  injection  and   in numeric filter."""
         resp = client.get(
             client.locale_path("trucks-for-sale"),
             params={name.split("_")[0] + "_" + name.split("_")[1]: payload}
-            if "_" in name else {name: payload}
+            if "_" in name
+            else {name: payload},
         )
         assert resp.status_code != 500
         found, pattern = _has_db_error(resp.text)
-        assert not found, (
-            f"DB ERROR LEAKED in '{name}'! Pattern: '{pattern}', Payload: {repr(payload)}"
-        )
+        assert (
+            not found
+        ), f"DB ERROR LEAKED in '{name}'! Pattern: '{pattern}', Payload: {repr(payload)}"
 
     def test_no_stacktrace_in_response(self, search: SearchClient):
         """TC_DB02: Stack trace does not disclosed with syntax ."""
@@ -287,9 +292,9 @@ class TestErrorBasedSqlInjection:
         resp = search.search_listings("' AND 1=CAST((SELECT version()) AS integer)--")
         text_lower = resp.text.lower()
         for pat in stacktrace_patterns:
-            assert not re.search(pat, text_lower), (
-                f"STACK TRACE LEAKED! Pattern '{pat}' found in response."
-            )
+            assert not re.search(
+                pat, text_lower
+            ), f"STACK TRACE LEAKED! Pattern '{pat}' found in response."
 
     def test_no_sql_syntax_visible(self, client: ListingsClient):
         """TC_DB03: text SQL- and to and   is shown user."""
@@ -299,14 +304,15 @@ class TestErrorBasedSqlInjection:
         # Neither one  iz  and   in     in response
         forbidden = ["syntax error", "sql error", "query failed", "database error"]
         for phrase in forbidden:
-            assert phrase not in text_lower, (
-                f"SQL ERROR TEXT VISIBLE: '{phrase}' found in response!"
-            )
+            assert (
+                phrase not in text_lower
+            ), f"SQL ERROR TEXT VISIBLE: '{phrase}' found in response!"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_DB04–TC_DB05: Blind Boolean-Based SQL Injection
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.db
 class TestBooleanBlindSqlInjection:
@@ -334,12 +340,12 @@ class TestBooleanBlindSqlInjection:
             f"TRUE={resp_true.status_code}, FALSE={resp_false.status_code}"
         )
 
-        # If   200 (real response) —    significantly from 
+        # If   200 (real response) —    significantly from
         if resp_true.status_code == 200 and resp_false.status_code == 200:
             size_true = len(resp_true.content)
             size_false = len(resp_false.content)
             diff = abs(size_true - size_false)
-            # If   pages >10KB  and   and  >30% —  and 
+            # If   pages >10KB  and   and  >30% —  and
             if size_true > 10_000 and size_false > 10_000:
                 ratio = diff / max(size_true, size_false)
                 assert ratio < 0.30, (
@@ -352,11 +358,11 @@ class TestBooleanBlindSqlInjection:
         """TC_DB05: Boolean  injection  in numeric parameter    and."""
         # Normal request
         resp_normal = client.get_sale_catalog(year_from=2020)
-        # Injection and  — if vulnerable, versione all  or other 
+        # Injection and  — if vulnerable, versione all  or other
         resp_injected = client.get_sale_catalog(year_from="2020 OR 1=1")
 
         assert resp_injected.status_code != 500
-        # If   200 — check that content approximately identically in if resp_normal.status_code == 200 and resp_injected.status_code == 200:
+        if resp_normal.status_code == 200 and resp_injected.status_code == 200:
             size_normal = len(resp_normal.content)
             size_injected = len(resp_injected.content)
             if size_normal > 10_000:
@@ -370,6 +376,7 @@ class TestBooleanBlindSqlInjection:
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_DB06–TC_DB07: Blind Time-Based SQL Injection
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.db
 @pytest.mark.slow
@@ -398,9 +405,7 @@ class TestTimeBasedSqlInjection:
         )
 
     @pytest.mark.parametrize("name,payload", TIME_BASED_PAYLOADS[:3])
-    def test_no_sleep_delay_in_make_filter(
-        self, client: ListingsClient, name: str, payload: str
-    ):
+    def test_no_sleep_delay_in_make_filter(self, client: ListingsClient, name: str, payload: str):
         """TC_DB06: SLEEP in parameter make does not cause ku."""
         start = time.time()
         resp = client.get_sale_catalog(make=payload)
@@ -432,6 +437,7 @@ class TestTimeBasedSqlInjection:
 # TC_DB08: Second-Order Injection
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.db
 class TestSecondOrderInjection:
     """
@@ -461,6 +467,7 @@ class TestSecondOrderInjection:
 # TC_DB09–TC_DB10: NoSQL Injection
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.db
 class TestNoSqlInjection:
     """
@@ -473,18 +480,18 @@ class TestNoSqlInjection:
     def test_nosql_operator_in_search(self, search: SearchClient, name: str, payload: str):
         """TC_DB09: MongoDB/NoSQL operators  in search do not cause 500."""
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"NoSQL INJECTION [{name}]: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"NoSQL INJECTION [{name}]: caused 500! Payload: {repr(payload)}"
         assert resp.status_code in SAFE_CODES
 
     @pytest.mark.parametrize("name,payload", NOSQL_PAYLOADS)
     def test_nosql_operator_in_make(self, client: ListingsClient, name: str, payload: str):
         """TC_DB09: MongoDB/NoSQL operators in parameter make do not cause 500."""
         resp = client.get_sale_catalog(make=payload)
-        assert resp.status_code != 500, (
-            f"NoSQL INJECTION [{name}] in make: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"NoSQL INJECTION [{name}] in make: caused 500! Payload: {repr(payload)}"
 
     def test_json_body_injection(self, client: ListingsClient):
         """TC_DB10: JSON- injection  in request body POST-request does not cause 500."""
@@ -499,15 +506,14 @@ class TestNoSqlInjection:
                 client.locale_path("trucks-for-sale"),
                 json=payload,
             )
-            # POST  GET-endpoint versione 405 or 302 — this 
-            assert resp.status_code != 500, (
-                f"JSON NoSQL injection caused 500! Payload: {payload}"
-            )
+            # POST  GET-endpoint versione 405 or 302 — this
+            assert resp.status_code != 500, f"JSON NoSQL injection caused 500! Payload: {payload}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_DB11–TC_DB13: Information Disclosure
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.db
 class TestInformationDisclosure:
@@ -518,13 +524,16 @@ class TestInformationDisclosure:
     - Andnames columns /  and   in message and   error
     """
 
-    @pytest.mark.parametrize("name,payload", [
-        ("mysql_version",   "' UNION SELECT version(),2,3 --"),
-        ("pg_version",      "' UNION SELECT version(),NULL,NULL --"),
-        ("mssql_version",   "' UNION SELECT @@version,NULL,NULL --"),
-        ("mysql_user",      "' UNION SELECT user(),2,3 --"),
-        ("pg_user",         "' UNION SELECT current_user,NULL,NULL --"),
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("mysql_version", "' UNION SELECT version(),2,3 --"),
+            ("pg_version", "' UNION SELECT version(),NULL,NULL --"),
+            ("mssql_version", "' UNION SELECT @@version,NULL,NULL --"),
+            ("mysql_user", "' UNION SELECT user(),2,3 --"),
+            ("pg_user", "' UNION SELECT current_user,NULL,NULL --"),
+        ],
+    )
     def test_db_version_not_disclosed_via_union(
         self, search: SearchClient, name: str, payload: str
     ):
@@ -532,48 +541,56 @@ class TestInformationDisclosure:
         resp = search.search_listings(payload)
         assert resp.status_code != 500
         found, pat = _has_db_info(resp.text)
-        assert not found, (
-            f"DB VERSION DISCLOSED [{name}]! Pattern: '{pat}'\nPayload: {repr(payload)}"
-        )
+        assert (
+            not found
+        ), f"DB VERSION DISCLOSED [{name}]! Pattern: '{pat}'\nPayload: {repr(payload)}"
 
-    @pytest.mark.parametrize("name,payload", [
-        ("info_schema_tables",  "' UNION SELECT table_name FROM information_schema.tables --"),
-        ("info_schema_columns", "' UNION SELECT column_name FROM information_schema.columns --"),
-        ("pg_tables",           "' UNION SELECT tablename FROM pg_tables --"),
-        ("mssql_sysobjects",    "' UNION SELECT name FROM sysobjects --"),
-        ("sqlite_master",       "' UNION SELECT name FROM sqlite_master --"),
-    ])
-    def test_system_tables_not_accessible(
-        self, search: SearchClient, name: str, payload: str
-    ):
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("info_schema_tables", "' UNION SELECT table_name FROM information_schema.tables --"),
+            (
+                "info_schema_columns",
+                "' UNION SELECT column_name FROM information_schema.columns --",
+            ),
+            ("pg_tables", "' UNION SELECT tablename FROM pg_tables --"),
+            ("mssql_sysobjects", "' UNION SELECT name FROM sysobjects --"),
+            ("sqlite_master", "' UNION SELECT name FROM sqlite_master --"),
+        ],
+    )
+    def test_system_tables_not_accessible(self, search: SearchClient, name: str, payload: str):
         """TC_DB12:  system  and  is not returned through UNION SELECT."""
         resp = search.search_listings(payload)
         assert resp.status_code != 500
         text_lower = resp.text.lower()
         # Andnames  system  and      in response
         forbidden_table_names = [
-            "information_schema", "pg_tables", "sysobjects",
-            "sqlite_master", "sys.objects"
+            "information_schema",
+            "pg_tables",
+            "sysobjects",
+            "sqlite_master",
+            "sys.objects",
         ]
         for name_str in forbidden_table_names:
-            assert name_str not in text_lower, (
-                f"SYSTEM TABLE EXPOSED [{name}]: '{name_str}' found in response!"
-            )
+            assert (
+                name_str not in text_lower
+            ), f"SYSTEM TABLE EXPOSED [{name}]: '{name_str}' found in response!"
 
     def test_column_names_not_in_errors(self, client: ListingsClient):
         """TC_DB13: Andnames columns does not disclosed  in errors."""
         resp = client.get_sale_catalog(make="' GROUP BY 1,2,3,4,5,6,7,8,9,10 --")
         assert resp.status_code != 500
-        #  "unknown column 'X'" disclose str  and 
+        #  "unknown column 'X'" disclose str  and
         unknown_col = re.search(r"unknown column ['\"`](\w+)['\"`]", resp.text.lower())
-        assert not unknown_col, (
-            f"COLUMN NAME DISCLOSED: '{unknown_col.group(1)}' found in error response!"
-        )
+        assert (
+            not unknown_col
+        ), f"COLUMN NAME DISCLOSED: '{unknown_col.group(1)}' found in error response!"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_DB14–TC_DB15: Mass Assignment / Over-Fetching
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.db
 class TestMassAssignment:
@@ -598,22 +615,17 @@ class TestMassAssignment:
             "table": "listings",
         }
         for param, value in unexpected.items():
-            resp = client.get(
-                client.locale_path("trucks-for-sale"),
-                params={param: value}
-            )
-            assert resp.status_code != 500, (
-                f"Unexpected param '{param}={value}' caused 500!"
-            )
+            resp = client.get(client.locale_path("trucks-for-sale"), params={param: value})
+            assert resp.status_code != 500, f"Unexpected param '{param}={value}' caused 500!"
 
-    @pytest.mark.parametrize("limit_val", [
-        "99999", "999999", "-1", "0", "2147483647", "9999999999"
-    ])
+    @pytest.mark.parametrize(
+        "limit_val", ["99999", "999999", "-1", "0", "2147483647", "9999999999"]
+    )
     def test_large_limit_handled(self, client: ListingsClient, limit_val: str):
         """TC_DB15: Very LIMIT does not lead to  alldatabase or 500."""
         resp = client.get(
             client.locale_path("trucks-for-sale"),
-            params={"limit": limit_val, "per_page": limit_val, "page_size": limit_val}
+            params={"limit": limit_val, "per_page": limit_val, "page_size": limit_val},
         )
         assert resp.status_code != 500, f"Large limit={limit_val} caused 500!"
         # If 200 — response    om (sign of to and  all and )
@@ -629,6 +641,7 @@ class TestMassAssignment:
 # TC_DB16–TC_DB17: ORM Injection
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.db
 class TestOrmInjection:
     """
@@ -636,42 +649,43 @@ class TestOrmInjection:
     Django, Rails ActiveRecord, Sequelize, TypeORM.
     """
 
-    @pytest.mark.parametrize("name,payload", [
-        ("django_extra",        "' extra select=1 --"),
-        ("django_raw",          "make=Volvo&raw=SELECT * FROM listings"),
-        ("rails_arel",          "' Arel.sql('SELECT 1') --"),
-        ("sequelize_literal",   "' Sequelize.literal('1=1') --"),
-        ("typeorm_query",       "' QueryBuilder.where('1=1') --"),
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("django_extra", "' extra select=1 --"),
+            ("django_raw", "make=Volvo&raw=SELECT * FROM listings"),
+            ("rails_arel", "' Arel.sql('SELECT 1') --"),
+            ("sequelize_literal", "' Sequelize.literal('1=1') --"),
+            ("typeorm_query", "' QueryBuilder.where('1=1') --"),
+        ],
+    )
     def test_orm_specific_payloads(self, search: SearchClient, name: str, payload: str):
         """TC_DB16: ORM- and   injection does not cause 500."""
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"ORM INJECTION [{name}]: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"ORM INJECTION [{name}]: caused 500! Payload: {repr(payload)}"
         found, pat = _has_db_error(resp.text)
         assert not found, f"DB error for ORM injection [{name}]: {pat}"
 
-    @pytest.mark.parametrize("param,value", [
-        ("make[]",          "Volvo"),
-        ("make[0]",         "Volvo"),
-        ("make[name]",      "Volvo"),
-        ("make[like]",      "%Volvo%"),
-        ("make[contains]",  "Volvo"),
-        ("filter[make]",    "Volvo"),
-        ("where[make]",     "Volvo"),
-        ("make[ne]",        ""),
-        ("make[gt]",        ""),
-    ])
+    @pytest.mark.parametrize(
+        "param,value",
+        [
+            ("make[]", "Volvo"),
+            ("make[0]", "Volvo"),
+            ("make[name]", "Volvo"),
+            ("make[like]", "%Volvo%"),
+            ("make[contains]", "Volvo"),
+            ("filter[make]", "Volvo"),
+            ("where[make]", "Volvo"),
+            ("make[ne]", ""),
+            ("make[gt]", ""),
+        ],
+    )
     def test_nested_bracket_params(self, client: ListingsClient, param: str, value: str):
         """TC_DB17:  parameter  in bracket-from  do not cause 500."""
-        resp = client.get(
-            client.locale_path("trucks-for-sale"),
-            params={param: value}
-        )
-        assert resp.status_code != 500, (
-            f"Bracket param '{param}={value}' caused 500!"
-        )
+        resp = client.get(client.locale_path("trucks-for-sale"), params={param: value})
+        assert resp.status_code != 500, f"Bracket param '{param}={value}' caused 500!"
         found, pat = _has_db_error(resp.text)
         assert not found, f"DB error for bracket param [{param}]: {pat}"
 
@@ -680,6 +694,7 @@ class TestOrmInjection:
 # TC_DB18–TC_DB20: Encoding & WAF Bypass
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.db
 class TestEncodingBypass:
     """
@@ -687,45 +702,54 @@ class TestEncodingBypass:
     one   and   and   and   in and  payload  database.
     """
 
-    @pytest.mark.parametrize("name,payload", [
-        ("url_encoded_quote",  "%27"),
-        ("url_encoded_union",  "%27%20UNION%20SELECT%20NULL--"),
-        ("url_encoded_or",     "%27%20OR%20%271%27%3D%271"),
-        ("url_encoded_sleep",  "%27%20AND%20SLEEP(3)--"),
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("url_encoded_quote", "%27"),
+            ("url_encoded_union", "%27%20UNION%20SELECT%20NULL--"),
+            ("url_encoded_or", "%27%20OR%20%271%27%3D%271"),
+            ("url_encoded_sleep", "%27%20AND%20SLEEP(3)--"),
+        ],
+    )
     def test_url_encoded_sql(self, search: SearchClient, name: str, payload: str):
         """TC_DB18: URL-encoded SQL injection does not cause 500."""
-        # yese as raw string — requests     and 
+        # yese as raw string — requests     and
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"URL-ENCODED SQLi [{name}]: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"URL-ENCODED SQLi [{name}]: caused 500! Payload: {repr(payload)}"
         found, pat = _has_db_error(resp.text)
         assert not found, f"DB error for URL-encoded [{name}]: {pat}"
 
-    @pytest.mark.parametrize("name,payload", [
-        ("double_encoded_quote",  "%2527"),
-        ("double_encoded_select", "%2527%2520UNION%2520SELECT%2520NULL--"),
-        ("hex_quote",             "0x27"),
-        ("hex_union",             "0x27204f522031"),
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("double_encoded_quote", "%2527"),
+            ("double_encoded_select", "%2527%2520UNION%2520SELECT%2520NULL--"),
+            ("hex_quote", "0x27"),
+            ("hex_union", "0x27204f522031"),
+        ],
+    )
     def test_double_encoded_sql(self, search: SearchClient, name: str, payload: str):
         """TC_DB19: Double URL-encoded injection does not cause 500."""
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"DOUBLE-ENCODED SQLi [{name}]: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"DOUBLE-ENCODED SQLi [{name}]: caused 500! Payload: {repr(payload)}"
 
-    @pytest.mark.parametrize("name,payload", [
-        ("unicode_quote",     "\u02bc"),             # ʼ — modifier letter apostrophe
-        ("unicode_dash",      "\u2012\u2013\u2014"), #  and  instead of --
-        ("fullwidth_select",  "\uff33\uff25\uff2c\uff25\uff23\uff34"),  # ＳＥＬＥＣＴ
-        ("fullwidth_union",   "\uff35\uff2e\uff29\uff2f\uff2e"),        # ＵＮＩＯＮ
-        ("cyrillic_latin",    "ЅL"),             # to and  and  and  instead of  and  and 
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("unicode_quote", "\u02bc"),  # ʼ — modifier letter apostrophe
+            ("unicode_dash", "\u2012\u2013\u2014"),  #  and  instead of --
+            ("fullwidth_select", "\uff33\uff25\uff2c\uff25\uff23\uff34"),  # ＳＥＬＥＣＴ
+            ("fullwidth_union", "\uff35\uff2e\uff29\uff2f\uff2e"),  # ＵＮＩＯＮ
+            ("cyrillic_latin", "ЅL"),  # to and  and  and  instead of  and  and
+        ],
+    )
     def test_unicode_homoglyph_sql(self, search: SearchClient, name: str, payload: str):
         """TC_DB20: Unicode-homoglyph injection does not cause 500."""
         resp = search.search_listings(payload)
-        assert resp.status_code != 500, (
-            f"UNICODE SQLi [{name}]: caused 500! Payload: {repr(payload)}"
-        )
+        assert (
+            resp.status_code != 500
+        ), f"UNICODE SQLi [{name}]: caused 500! Payload: {repr(payload)}"

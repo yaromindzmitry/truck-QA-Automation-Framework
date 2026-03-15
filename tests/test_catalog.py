@@ -17,15 +17,15 @@ Coverage:
   TC_CAT13  Click on card opens listing page
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import CatalogPage
 from utils.helpers import extract_number
 
 
 @pytest.mark.catalog
 class TestCatalog:
-
     @pytest.fixture(autouse=True)
     def open_catalog(self, page: Page, catalog_url: str):
         """Open catalog page before each test."""
@@ -35,7 +35,6 @@ class TestCatalog:
 
     def test_catalog_page_loads(self, page: Page):
         """Page catalog successfully loads."""
-        cat = CatalogPage(page)
         root = page.locator("h1, main").first
         if not root.is_visible(timeout=5000):
             pytest.skip("Catalog page did not load (h1/main not visible)")

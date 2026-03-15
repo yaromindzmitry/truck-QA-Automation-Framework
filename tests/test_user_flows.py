@@ -25,12 +25,13 @@ Architecture:
   - Steps logged through allure-step / print for visibility in report
 """
 
+from playwright.sync_api import Page
 import pytest
-from playwright.sync_api import Page, expect
-from pages import HomePage, CatalogPage, ListingPage, LeasingListingPage, SellerPage
 
+from pages import HomePage, LeasingListingPage, ListingPage, SellerPage
 
 # ── Helper functions ───────────────────────────────────────────────────
+
 
 def _go(page: Page, path: str, desc: str = ""):
     """Navigate with wait for loading."""
@@ -62,10 +63,10 @@ def _first_lease_url(page: Page) -> str:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.flow
 @pytest.mark.e2e
 class TestUserFlows:
-
     # ──────────────────────────────────────────────────────────────────────────
     # UF01: Search Flow
     # Scenario: user enters query in search → goes to catalog
@@ -94,9 +95,9 @@ class TestUserFlows:
 
         # Step 2: URL changed (catalog or search)
         current_url = page.url
-        assert any(kw in current_url for kw in ["volvo", "Volvo", "q=", "search", "trucks"]), (
-            f"UF01: After search, URL doesn't contain search context. URL: {current_url}"
-        )
+        assert any(
+            kw in current_url for kw in ["volvo", "Volvo", "q=", "search", "trucks"]
+        ), f"UF01: After search, URL doesn't contain search context. URL: {current_url}"
 
         # Step 3: are cards of listings
         cards = page.locator("a[href*='/trucks-for-sale/']")
@@ -129,23 +130,21 @@ class TestUserFlows:
         - Count of cards is non-zero
         """
         _go(page, "/en/trucks-for-sale")
-        catalog = CatalogPage(page)
-
         # Step 1: catalog loaded — are cards
         cards = page.locator("a[href*='/trucks-for-sale/']")
         if cards.count() == 0:
             pytest.skip("UF02: No cards in catalog")
-        initial_count = cards.count()
-        initial_url = page.url
+        _initial_count = cards.count()
+        _initial_url = page.url
 
         # Step 2: filter by year (through URL — most reliable way)
         _go(page, "/en/trucks-for-sale?year_from=2018")
         page.wait_for_timeout(1000)
 
         # Step 3: URL contains filter
-        assert "year_from=2018" in page.url or "2018" in page.url, (
-            f"UF02: Filter not reflected in URL: {page.url}"
-        )
+        assert (
+            "year_from=2018" in page.url or "2018" in page.url
+        ), f"UF02: Filter not reflected in URL: {page.url}"
 
         # Step 4: cards exist
         filtered_cards = page.locator("a[href*='/trucks-for-sale/']")
@@ -153,7 +152,7 @@ class TestUserFlows:
             pytest.skip("UF02: No cards after filter — possible empty result, not a bug")
 
         # Step 5: open first listing
-        first_url = filtered_cards.first.get_attribute("href") or ""
+        _first_url = filtered_cards.first.get_attribute("href") or ""
         filtered_cards.first.click()
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
 
@@ -203,10 +202,7 @@ class TestUserFlows:
         # Step 5: in popup are fields email or name
         email_field = page.locator("input[type='email']").first
         name_field = page.locator("input[name*='name'], input[placeholder*='name']").first
-        has_form = (
-            email_field.is_visible(timeout=3000) or
-            name_field.is_visible(timeout=3000)
-        )
+        has_form = email_field.is_visible(timeout=3000) or name_field.is_visible(timeout=3000)
         assert has_form, "UF03: Contact popup has no form fields (email/name not found)"
 
         # Step 6: close popup (ESC — universal)
@@ -285,7 +281,7 @@ class TestUserFlows:
 
         h1 = page.locator("h1").first
         _skip_if_not_visible(h1, "UF05: No h1 on listing page")
-        listing_title = h1.inner_text()
+        _listing_title = h1.inner_text()
 
         # Step 2: find link to seller
         listing = ListingPage(page)
@@ -345,9 +341,9 @@ class TestUserFlows:
         _skip_if_not_visible(h1, "UF06: Curtainsider category has no h1")
 
         category_url = page.url
-        assert "curtainsider" in category_url, (
-            f"UF06: URL doesn't contain category slug: {category_url}"
-        )
+        assert (
+            "curtainsider" in category_url
+        ), f"UF06: URL doesn't contain category slug: {category_url}"
 
         # Step 4: are breadcrumbs
         listing = ListingPage(page)
@@ -363,9 +359,7 @@ class TestUserFlows:
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
 
         # Step 6: returned to different page (not the category)
-        assert page.url != category_url, (
-            "UF06: URL didn't change after clicking breadcrumb"
-        )
+        assert page.url != category_url, "UF06: URL didn't change after clicking breadcrumb"
 
     # ──────────────────────────────────────────────────────────────────────────
     # UF07: Pagination Flow
@@ -395,9 +389,11 @@ class TestUserFlows:
         _go(page, "/en/trucks-for-sale?page=2")
         page.wait_for_timeout(1000)
 
-        assert "page=2" in page.url or "/page/2" in page.url or page.url != "https://www.truck1.eu/en/trucks-for-sale?page=1", (
-            f"UF07: Page 2 URL unexpected: {page.url}"
-        )
+        assert (
+            "page=2" in page.url
+            or "/page/2" in page.url
+            or page.url != "https://www.truck1.eu/en/trucks-for-sale?page=1"
+        ), f"UF07: Page 2 URL unexpected: {page.url}"
 
         # Step 3: cards on page 2 are
         cards_p2 = page.locator("a[href*='/trucks-for-sale/']")
@@ -460,15 +456,15 @@ class TestUserFlows:
 
         # Step 4: returned to catalog
         back_url = page.url
-        assert "trucks-for-sale" in back_url, (
-            f"UF08: After going back, URL is not catalog: {back_url}"
-        )
+        assert (
+            "trucks-for-sale" in back_url
+        ), f"UF08: After going back, URL is not catalog: {back_url}"
 
         # Step 5: catalog not broken — cards are
         cards_after = page.locator("a[href*='/trucks-for-sale/']")
-        assert cards_after.count() > 0, (
-            "UF08: After browser back, no listing cards visible — page may be broken"
-        )
+        assert (
+            cards_after.count() > 0
+        ), "UF08: After browser back, no listing cards visible — page may be broken"
 
     # ──────────────────────────────────────────────────────────────────────────
     # UF09: Logo Return to Home
@@ -533,7 +529,7 @@ class TestUserFlows:
         page.goto(
             "https://www.truck1.eu/en/this-page-does-not-exist-truck1qa-test",
             wait_until="domcontentloaded",
-            timeout=20_000
+            timeout=20_000,
         )
         page.wait_for_timeout(500)
 
@@ -544,7 +540,9 @@ class TestUserFlows:
         assert len(body_text) > 10, "UF10: 404 page is empty — server may have crashed"
 
         # Step 3: find link to main
-        home_link = page.locator("a[href*='/en'], a[href='/'], a:has-text('Home'), a:has-text('Back')").first
+        home_link = page.locator(
+            "a[href*='/en'], a[href='/'], a:has-text('Home'), a:has-text('Back')"
+        ).first
         _skip_if_not_visible(home_link, "UF10: No home link found on 404 page")
 
         home_link.click()

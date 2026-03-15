@@ -28,6 +28,7 @@ Execution:
 """
 
 import re
+
 import pytest
 import requests
 
@@ -64,6 +65,7 @@ REACHABLE = (200, 202, 301, 302)
 
 # ── HTTP-helper ───────────────────────────────────────────────────────────────
 
+
 def _get(path: str, locale: str) -> requests.Response:
     """GET request with browser headers for bypassing bot-filter."""
     url = f"{BASE_URL}/{locale}{path}"
@@ -86,6 +88,7 @@ def _get(path: str, locale: str) -> requests.Response:
 
 # ── Tier 1: Main locales — extended checks ────────────────────────────
 
+
 @pytest.mark.tier1
 @pytest.mark.parametrize("locale", TIER1_LOCALES)
 class TestTier1LocaleSmoke:
@@ -99,18 +102,14 @@ class TestTier1LocaleSmoke:
         resp = _get("", locale)
         if resp.status_code == 202:
             pytest.skip(f"CF challenge on /{locale}/ — run in headed browser")
-        assert resp.status_code == 200, (
-            f"LOC01 [{locale}]: Homepage returned {resp.status_code}"
-        )
+        assert resp.status_code == 200, f"LOC01 [{locale}]: Homepage returned {resp.status_code}"
 
     def test_loc02_catalog_reachable(self, locale):
         """LOC02: Catalog trucks returns 200/202."""
         resp = _get("/trucks-for-sale", locale)
         if resp.status_code == 202:
             pytest.skip(f"CF challenge on /{locale}/trucks-for-sale")
-        assert resp.status_code == 200, (
-            f"LOC02 [{locale}]: Catalog returned {resp.status_code}"
-        )
+        assert resp.status_code == 200, f"LOC02 [{locale}]: Catalog returned {resp.status_code}"
 
     def test_loc03_html_lang_attribute(self, locale):
         """LOC03: <html lang='...'> matches locale."""
@@ -123,51 +122,53 @@ class TestTier1LocaleSmoke:
             pytest.skip(f"LOC03 [{locale}]: No lang= attribute found in <html>")
         found_lang = lang_match.group(1).lower()
         expected = [x.lower() for x in LOCALE_LANG_MAP.get(locale, [locale])]
-        assert found_lang in expected or found_lang.startswith(locale), (
-            f"LOC03 [{locale}]: html lang='{found_lang}', expected one of {expected}"
-        )
+        assert found_lang in expected or found_lang.startswith(
+            locale
+        ), f"LOC03 [{locale}]: html lang='{found_lang}', expected one of {expected}"
 
     def test_loc04_title_contains_brand(self, locale):
         """LOC04: <title> contains 'truck1' (brand)."""
         resp = _get("", locale)
         if resp.status_code == 202:
             pytest.skip("CF challenge — cannot inspect <title>")
-        title_match = re.search(r'<title[^>]*>(.*?)</title>', resp.text, re.IGNORECASE | re.DOTALL)
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", resp.text, re.IGNORECASE | re.DOTALL)
         assert title_match, f"LOC04 [{locale}]: No <title> tag found"
         title = title_match.group(1).strip()
         assert len(title) > 0, f"LOC04 [{locale}]: <title> is empty"
-        assert "truck1" in title.lower(), (
-            f"LOC04 [{locale}]: <title> doesn't contain brand 'truck1'. Got: '{title[:80]}'"
-        )
+        assert (
+            "truck1" in title.lower()
+        ), f"LOC04 [{locale}]: <title> doesn't contain brand 'truck1'. Got: '{title[:80]}'"
 
     def test_loc05_h1_present_on_homepage(self, locale):
         """LOC05: On home is <h1>."""
         resp = _get("", locale)
         if resp.status_code == 202:
             pytest.skip("CF challenge — cannot inspect h1")
-        assert re.search(r'<h1[\s>]', resp.text, re.IGNORECASE), (
-            f"LOC05 [{locale}]: No <h1> on homepage"
-        )
+        assert re.search(
+            r"<h1[\s>]", resp.text, re.IGNORECASE
+        ), f"LOC05 [{locale}]: No <h1> on homepage"
 
     def test_loc06_leasing_catalog_reachable(self, locale):
         """LOC06: Catalog leasing available."""
         resp = _get("/trucks-for-lease", locale)
         if resp.status_code == 202:
             pytest.skip(f"CF challenge on /{locale}/trucks-for-lease")
-        assert resp.status_code == 200, (
-            f"LOC06 [{locale}]: Leasing catalog returned {resp.status_code}"
-        )
+        assert (
+            resp.status_code == 200
+        ), f"LOC06 [{locale}]: Leasing catalog returned {resp.status_code}"
 
     def test_loc07_dealers_page_reachable(self, locale):
         """LOC07: Page dealers/sellers is available."""
         resp = _get("/dealers", locale)
         if resp.status_code in (404, 301, 302):
-            pytest.skip(f"LOC07 [{locale}]: /dealers returned {resp.status_code} — may have different slug")
+            pytest.skip(
+                f"LOC07 [{locale}]: /dealers returned {resp.status_code} — may have different slug"
+            )
         if resp.status_code == 202:
             pytest.skip(f"CF challenge on /{locale}/dealers")
-        assert resp.status_code == 200, (
-            f"LOC07 [{locale}]: Dealers page returned {resp.status_code}"
-        )
+        assert (
+            resp.status_code == 200
+        ), f"LOC07 [{locale}]: Dealers page returned {resp.status_code}"
 
     def test_loc08_no_server_error(self, locale):
         """LOC08: Server does not return 5xx on main pages."""
@@ -177,9 +178,7 @@ class TestTier1LocaleSmoke:
             resp = _get(path, locale)
             if 500 <= resp.status_code <= 599:
                 errors.append(f"{path} → {resp.status_code}")
-        assert not errors, (
-            f"LOC08 [{locale}]: Server errors found:\n" + "\n".join(errors)
-        )
+        assert not errors, f"LOC08 [{locale}]: Server errors found:\n" + "\n".join(errors)
 
     def test_loc09_catalog_has_listings_count(self, locale):
         """LOC09: In HTML catalog is sign of listings present (number or cards)."""
@@ -189,13 +188,13 @@ class TestTier1LocaleSmoke:
         html = resp.text
         # Signs: listings present: JSON with "total", number in text or data-attributes
         has_listings = (
-            re.search(r'"total"\s*:\s*[1-9]\d*', html) or
-            re.search(r'data-count=["\'][1-9]', html) or
-            re.search(r'/trucks-for-sale/', html)  # links to listings
+            re.search(r'"total"\s*:\s*[1-9]\d*', html)
+            or re.search(r'data-count=["\'][1-9]', html)
+            or re.search(r"/trucks-for-sale/", html)  # links to listings
         )
-        assert has_listings, (
-            f"LOC09 [{locale}]: No sign of listings in catalog HTML — page may be broken"
-        )
+        assert (
+            has_listings
+        ), f"LOC09 [{locale}]: No sign of listings in catalog HTML — page may be broken"
 
     def test_loc10_canonical_url_matches_locale(self, locale):
         """LOC10: Canonical URL home contains proper locale."""
@@ -204,17 +203,19 @@ class TestTier1LocaleSmoke:
             pytest.skip("CF challenge — cannot inspect canonical")
         canonical_match = re.search(
             r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)["\']',
-            resp.text, re.IGNORECASE
+            resp.text,
+            re.IGNORECASE,
         )
         if not canonical_match:
             pytest.skip(f"LOC10 [{locale}]: No canonical tag found")
         canonical = canonical_match.group(1)
-        assert f"/{locale}" in canonical or canonical.endswith("truck1.eu/"), (
-            f"LOC10 [{locale}]: Canonical URL '{canonical}' doesn't match locale"
-        )
+        assert f"/{locale}" in canonical or canonical.endswith(
+            "truck1.eu/"
+        ), f"LOC10 [{locale}]: Canonical URL '{canonical}' doesn't match locale"
 
 
 # ── Tier 2: Secondary locales — basic checks ───────────────────────────────
+
 
 @pytest.mark.tier2
 @pytest.mark.parametrize("locale", TIER2_LOCALES)
@@ -227,43 +228,38 @@ class TestTier2LocaleSmoke:
     def test_homepage_200(self, locale):
         """Homepage page reachable (200 or CF 202)."""
         resp = _get("", locale)
-        assert resp.status_code in REACHABLE, (
-            f"[{locale}] Homepage unreachable: {resp.status_code}"
-        )
+        assert resp.status_code in REACHABLE, f"[{locale}] Homepage unreachable: {resp.status_code}"
 
     def test_catalog_200(self, locale):
         """Catalog trucks reachable."""
         resp = _get("/trucks-for-sale", locale)
-        assert resp.status_code in REACHABLE, (
-            f"[{locale}] Catalog unreachable: {resp.status_code}"
-        )
+        assert resp.status_code in REACHABLE, f"[{locale}] Catalog unreachable: {resp.status_code}"
 
     def test_no_500_on_homepage(self, locale):
         """No Server Error on home."""
         resp = _get("", locale)
-        assert not (500 <= resp.status_code <= 599), (
-            f"[{locale}] Server error on homepage: {resp.status_code}"
-        )
+        assert not (
+            500 <= resp.status_code <= 599
+        ), f"[{locale}] Server error on homepage: {resp.status_code}"
 
     def test_title_not_empty(self, locale):
         """<title> exists and not empty."""
         resp = _get("", locale)
         if resp.status_code == 202:
             pytest.skip("CF challenge")
-        title = re.search(r'<title[^>]*>(.*?)</title>', resp.text, re.IGNORECASE | re.DOTALL)
-        assert title and len(title.group(1).strip()) > 0, (
-            f"[{locale}] Empty or missing <title>"
-        )
+        title = re.search(r"<title[^>]*>(.*?)</title>", resp.text, re.IGNORECASE | re.DOTALL)
+        assert title and len(title.group(1).strip()) > 0, f"[{locale}] Empty or missing <title>"
 
     def test_leasing_reachable(self, locale):
         """Catalog leasing available."""
         resp = _get("/trucks-for-lease", locale)
-        assert resp.status_code in REACHABLE, (
-            f"[{locale}] Leasing catalog unreachable: {resp.status_code}"
-        )
+        assert (
+            resp.status_code in REACHABLE
+        ), f"[{locale}] Leasing catalog unreachable: {resp.status_code}"
 
 
 # ── Cross-locale test: consistency ───────────────────────────────────────
+
 
 @pytest.mark.locale_cross
 class TestLocaleConsistency:
@@ -282,10 +278,7 @@ class TestLocaleConsistency:
             resp = _get("", locale)
             results[locale] = resp.status_code
 
-        errors = {
-            loc: code for loc, code in results.items()
-            if code >= 400
-        }
+        errors = {loc: code for loc, code in results.items() if code >= 400}
         assert not errors, (
             "Some locales return errors while others work:\n"
             + "\n".join(f"  /{loc}/ → {code}" for loc, code in errors.items())
@@ -305,12 +298,13 @@ class TestLocaleConsistency:
         )
         # After redirects should land on page with locale
         final_url = resp.url
-        assert "truck1.eu" in final_url, (
-            f"Redirect from root went to unexpected domain: {final_url}"
-        )
-        assert resp.status_code in (200, 202), (
-            f"Root redirect ended with status {resp.status_code} at {final_url}"
-        )
+        assert (
+            "truck1.eu" in final_url
+        ), f"Redirect from root went to unexpected domain: {final_url}"
+        assert resp.status_code in (
+            200,
+            202,
+        ), f"Root redirect ended with status {resp.status_code} at {final_url}"
 
     def test_hreflang_tags_present_for_key_locales(self):
         """
@@ -322,8 +316,7 @@ class TestLocaleConsistency:
             pytest.skip("CF challenge — cannot inspect hreflang")
 
         hreflang_tags = re.findall(
-            r'<link[^>]+hreflang=["\']([^"\']+)["\'][^>]*/?>',
-            resp.text, re.IGNORECASE
+            r'<link[^>]+hreflang=["\']([^"\']+)["\'][^>]*/?>', resp.text, re.IGNORECASE
         )
         found_langs = {tag.lower() for tag in hreflang_tags}
 

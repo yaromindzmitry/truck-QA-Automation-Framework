@@ -18,15 +18,15 @@ Coverage:
   TC_H14  Empty search does not break the page
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import HomePage
 
 
 @pytest.mark.smoke
 @pytest.mark.header
 class TestHeader:
-
     # ── TC_H01: Logo ──────────────────────────────────────────────────────
 
     def test_logo_is_visible(self, page: Page, locale_url: str):
@@ -77,7 +77,11 @@ class TestHeader:
         home = HomePage(page)
         home.type_in_search("Volvo")
         page.wait_for_load_state("domcontentloaded")
-        assert "volvo" in page.url.lower() or "search" in page.url.lower() or "truck" in page.url.lower()
+        assert (
+            "volvo" in page.url.lower()
+            or "search" in page.url.lower()
+            or "truck" in page.url.lower()
+        )
 
     def test_empty_search_no_crash(self, page: Page):
         """Empty search does not lead to 500/404 — any page is acceptable.
@@ -91,9 +95,9 @@ class TestHeader:
         inp.press("Enter")
         page.wait_for_load_state("domcontentloaded")
         # Acceptable: home, results page, external search — but not 500
-        assert "500" not in page.title() and "Error" not in page.title(), (
-            f"Page returned error after empty search: {page.title()}"
-        )
+        assert (
+            "500" not in page.title() and "Error" not in page.title()
+        ), f"Page returned error after empty search: {page.title()}"
 
     # ── TC_H04 / TC_H05: Place ad / Sell ────────────────────────────────────
 
@@ -118,6 +122,7 @@ class TestHeader:
     def test_favorites_button_visible(self, page: Page):
         """Button [Favorites] is visible in header."""
         import pytest
+
         home = HomePage(page)
         btn = page.locator(home.BTN_FAVORITES).first
         if not btn.is_visible(timeout=4000):
@@ -127,6 +132,7 @@ class TestHeader:
     def test_compare_button_visible(self, page: Page):
         """Button [Compare] is visible in header."""
         import pytest
+
         home = HomePage(page)
         btn = page.locator(home.BTN_COMPARE).first
         if not btn.is_visible(timeout=4000):
@@ -136,6 +142,7 @@ class TestHeader:
     def test_favorites_page_loads(self, page: Page):
         """Click on [Favorites] opens favorites page."""
         import pytest
+
         home = HomePage(page)
         btn = page.locator(home.BTN_FAVORITES).first
         if not btn.is_visible(timeout=4000):
@@ -147,6 +154,7 @@ class TestHeader:
     def test_compare_page_loads(self, page: Page):
         """Click on [Compare] opens comparison page."""
         import pytest
+
         home = HomePage(page)
         btn = page.locator(home.BTN_COMPARE).first
         if not btn.is_visible(timeout=4000):
@@ -174,12 +182,14 @@ class TestHeader:
         ).first.is_visible(timeout=4000)
         if not (sign_in_visible or reg_visible or user_icon_visible):
             import pytest
+
             pytest.skip("Auth button not found — selector needs update for this locale/variant")
         assert sign_in_visible or reg_visible or user_icon_visible
 
     def test_sign_in_opens_auth_page(self, page: Page):
         """Click on [Sign in] opens authorization page."""
         import pytest
+
         home = HomePage(page)
         btn = page.locator(
             f"{home.BTN_SIGN_IN}, [class*='v3-c-user'], "
@@ -196,6 +206,7 @@ class TestHeader:
     def test_main_slider_visible(self, page: Page):
         """Main slider/banner is present on the page."""
         import pytest
+
         home = HomePage(page)
         slider = page.locator(home.MAIN_SLIDER).first
         if not slider.is_visible(timeout=5000):
@@ -245,6 +256,7 @@ class TestHeader:
     def test_currency_block_visible(self, page: Page):
         """Block of currency selection is visible on page."""
         import pytest
+
         home = HomePage(page)
         currency = home.get_currency_block()
         if not currency.is_visible(timeout=4000):
@@ -254,6 +266,7 @@ class TestHeader:
     def test_language_block_visible(self, page: Page):
         """Block of language selection is visible on page."""
         import pytest
+
         home = HomePage(page)
         lang = home.get_language_block()
         if not lang.is_visible(timeout=4000):

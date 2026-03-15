@@ -17,12 +17,12 @@ Covers sections:
   - Footer
 """
 
-from playwright.sync_api import Page, Locator, expect
+from playwright.sync_api import Locator, Page
+
 from .base_page import BasePage
 
 
 class HomePage(BasePage):
-
     # ─── Product categories ───────────────────────────────────────────────────
     CATEGORIES_BLOCK = "[class*='categor'], [data-section*='categor'], .categories"
     CATEGORY_ITEMS = "[class*='categor'] a, [class*='categor'] li"
@@ -41,8 +41,12 @@ class HomePage(BasePage):
     # ─── Featured offers slider ───────────────────────────────────────────────
     FEATURED_SLIDER = "[class*='featured'], [data-section='featured'], section:has-text('Featured')"
     FEATURED_ITEMS = "[class*='featured'] .card, [class*='featured'] article, [class*='featured'] [class*='item']"
-    FEATURED_PREV = "[class*='featured'] .swiper-button-prev, [class*='featured'] [aria-label='Previous']"
-    FEATURED_NEXT = "[class*='featured'] .swiper-button-next, [class*='featured'] [aria-label='Next']"
+    FEATURED_PREV = (
+        "[class*='featured'] .swiper-button-prev, [class*='featured'] [aria-label='Previous']"
+    )
+    FEATURED_NEXT = (
+        "[class*='featured'] .swiper-button-next, [class*='featured'] [aria-label='Next']"
+    )
 
     # ─── Blog ────────────────────────────────────────────────────────────────
     BLOG_BLOCK = "[class*='blog'], section:has-text('Blog'), [data-section='blog']"

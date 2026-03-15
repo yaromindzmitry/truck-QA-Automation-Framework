@@ -20,15 +20,15 @@ Coverage:
   TC_LIST16  Block of similar listings is visible
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import CatalogPage, ListingPage
 from utils.helpers import generate_test_contact
 
 
 @pytest.mark.listing
 class TestListingPage:
-
     @pytest.fixture(autouse=True)
     def open_first_listing(self, page: Page, catalog_url: str):
         """Open catalog and navigate to first listing."""
@@ -115,7 +115,7 @@ class TestListingPage:
         thumbs = listing.get_thumbnails()
         if thumbs.count() < 2:
             pytest.skip("Not enough thumbnails to test")
-        initial_src = listing.get_main_photo().get_attribute("src")
+        _initial_src = listing.get_main_photo().get_attribute("src")
         listing.click_thumbnail(1)
         page.wait_for_timeout(300)
         new_src = listing.get_main_photo().get_attribute("src")

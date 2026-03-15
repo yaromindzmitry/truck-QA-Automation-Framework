@@ -44,9 +44,8 @@ Metrics to watch::
 """
 
 import random
-from locust import HttpUser, task, between, events
-from locust.exception import StopUser
 
+from locust import HttpUser, between, events, task
 
 # ──  ─────────────────────────────────────────────────────────────────
 
@@ -78,23 +77,23 @@ ACCEPTABLE_CODES = {200, 202, 301, 302, 304}
 
 # ── Helper functions ───────────────────────────────────────────────────
 
+
 def _check(response, name: str):
     """Check response  and  om as failure if  unexpected."""
     if response.status_code not in ACCEPTABLE_CODES:
-        response.failure(
-            f"{name}: unexpected status {response.status_code}"
-        )
+        response.failure(f"{name}: unexpected status {response.status_code}")
     elif response.status_code == 202:
         # CF challenge —  error,  slow
         response.success()
 
 
 def _locale() -> str:
-    """    and  (EN  all)."""
+    """and  (EN  all)."""
     return random.choices(LOCALES, weights=[60, 25, 15], k=1)[0]
 
 
 # ── scenario 1: browseruser ───────────────────────────────
+
 
 class BrowserUser(HttpUser):
     """
@@ -103,11 +102,12 @@ class BrowserUser(HttpUser):
     Pause between requests: 2–5 seconds (realistic page reading)
     Weight: 40% of all users
     """
+
     weight = 40
     wait_time = between(2, 5)
 
     def on_start(self):
-        """ and   home pages."""
+        """and   home pages."""
         self.locale = _locale()
         self.client.headers.update(BROWSER_HEADERS)
 
@@ -133,7 +133,7 @@ class BrowserUser(HttpUser):
 
     @task(2)
     def visit_catalog_page2(self):
-        """ page catalog (pagination)."""
+        """page catalog (pagination)."""
         with self.client.get(
             f"/{self.locale}/trucks-for-sale?page=2",
             name="[BrowserUser] Catalog page 2",
@@ -167,6 +167,7 @@ class BrowserUser(HttpUser):
 
 # ── scenario 2: User search ──────────────────────────────────────────
 
+
 class SearchUser(HttpUser):
     """
     And and  and  user from and  specific ku:
@@ -174,6 +175,7 @@ class SearchUser(HttpUser):
     Pause: 3–7 seconds ( request +  and results)
     Weight: 25% of all users
     """
+
     weight = 25
     wait_time = between(3, 7)
 
@@ -238,6 +240,7 @@ class SearchUser(HttpUser):
 
 # ── scenario 3: User filter in ────────────────────────────────────────
 
+
 class FilterUser(HttpUser):
     """
     And and  and  user from and   and  filter:
@@ -245,6 +248,7 @@ class FilterUser(HttpUser):
     Pause: 4–8 seconds
     Weight: 20% of all users
     """
+
     weight = 20
     wait_time = between(4, 8)
 
@@ -254,7 +258,7 @@ class FilterUser(HttpUser):
 
     @task(3)
     def filter_by_price(self):
-        """ filter   and ."""
+        """filter   and ."""
         price = random.choice(PRICE_TO_OPTIONS)
         with self.client.get(
             f"/{self.locale}/trucks-for-sale",
@@ -266,7 +270,7 @@ class FilterUser(HttpUser):
 
     @task(3)
     def filter_by_year(self):
-        """ filter   ."""
+        """filter   ."""
         year = random.choice(YEAR_FROM_OPTIONS)
         with self.client.get(
             f"/{self.locale}/trucks-for-sale",
@@ -303,12 +307,14 @@ class FilterUser(HttpUser):
 
 # ── scenario 4: User leasing ─────────────────────────────────────────
 
+
 class LeasingUser(HttpUser):
     """
     And and  and  user leasingom.
     Pause: 5–10 seconds ( and   iz and  in and )
     Weight: 15% of all users
     """
+
     weight = 15
     wait_time = between(5, 10)
 
@@ -328,7 +334,7 @@ class LeasingUser(HttpUser):
 
     @task(3)
     def visit_leasing_page2(self):
-        """ page leasing."""
+        """page leasing."""
         with self.client.get(
             f"/{self.locale}/trucks-for-lease?page=2",
             name="[LeasingUser] Leasing page 2",
@@ -338,7 +344,7 @@ class LeasingUser(HttpUser):
 
     @task(2)
     def visit_homepage(self):
-        """  main."""
+        """main."""
         with self.client.get(
             f"/{self.locale}",
             name="[LeasingUser] Homepage",
@@ -349,9 +355,10 @@ class LeasingUser(HttpUser):
 
 # ──  and:   and  in ────────────────────────────────────────────────────
 
+
 @events.quitting.add_listener
 def on_quitting(environment, **kwargs):
-    """ and   and   and to and  with version  ."""
+    """and   and   and to and  with version  ."""
     stats = environment.runner.stats
     total = stats.total
 
@@ -367,7 +374,7 @@ def on_quitting(environment, **kwargs):
     print(f"  Requests/sec   : {total.current_rps:.1f}")
     print("=" * 60)
 
-    # Thresholds — if violated,   and  
+    # Thresholds — if violated,   and
     p95 = total.get_response_time_percentile(0.95)
     fail_rate = total.fail_ratio * 100
 

@@ -8,14 +8,16 @@ Architecture:
   - interception of console errors and network requests
 """
 
-import pytest
-import os
 from datetime import datetime
+import os
+
 from dotenv import load_dotenv
+import pytest
+
 from api.client import ListingsClient, SearchClient
 
 try:
-    from playwright.sync_api import Page, BrowserContext
+    from playwright.sync_api import BrowserContext, Page
 except ImportError:
     Page = None  # type: ignore[assignment,misc]
     BrowserContext = None  # type: ignore[assignment,misc]
@@ -83,6 +85,7 @@ def locale_url(base_url, locale):
 
 # ─── Playwright browser config ────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):
     return {
@@ -115,8 +118,7 @@ def page(context: BrowserContext, locale_url: str) -> Page:
     page = context.new_page()
     console_errors = []
 
-    page.on("console", lambda msg: console_errors.append(msg.text)
-            if msg.type == "error" else None)
+    page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
     page.goto(locale_url, wait_until="domcontentloaded", timeout=30_000)
 
@@ -148,6 +150,7 @@ def _accept_gdpr(page: Page):
 
 # ─── Helper fixtures ────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def listing_page_url(base_url, locale):
     """URL of first truck for sale listing."""
@@ -171,6 +174,7 @@ def seller_page_url(base_url, locale):
 
 
 # ─── API fixtures ────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="function")
 def api_client(base_url, locale):
@@ -204,6 +208,7 @@ def api_locale(locale):
 
 # ─── Hooks ───────────────────────────────────────────────────────────────────
 
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Take screenshot on test failure."""
@@ -214,7 +219,9 @@ def pytest_runtest_makereport(item, call):
         page = item.funcargs.get("page")
         if page:
             os.makedirs("reports/screenshots", exist_ok=True)
-            screenshot_path = f"reports/screenshots/{item.nodeid.replace('/', '_').replace('::', '__')}.png"
+            screenshot_path = (
+                f"reports/screenshots/{item.nodeid.replace('/', '_').replace('::', '__')}.png"
+            )
             try:
                 page.screenshot(path=screenshot_path, full_page=True)
                 report.extra = getattr(report, "extra", [])

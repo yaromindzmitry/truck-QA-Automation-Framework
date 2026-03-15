@@ -17,14 +17,14 @@ Coverage:
   TC_HOME13  No critical errors in console
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import HomePage
 
 
 @pytest.mark.home
 class TestHomeBlocks:
-
     # ── TC_HOME01: Categories of goods ─────────────────────────────────────────
 
     def test_categories_block_visible(self, page: Page):
@@ -225,5 +225,7 @@ class TestHomeBlocks:
     def test_no_critical_console_errors(self, page: Page):
         """On home page no critical JS-errors in console."""
         errors = getattr(page, "_console_errors", [])
-        critical = [e for e in errors if "Uncaught" in e or "TypeError" in e or "ReferenceError" in e]
+        critical = [
+            e for e in errors if "Uncaught" in e or "TypeError" in e or "ReferenceError" in e
+        ]
         assert len(critical) == 0, f"Critical JS errors found: {critical[:3]}"

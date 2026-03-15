@@ -10,12 +10,12 @@ Covers:
   - Filters for seller's listings
 """
 
-from playwright.sync_api import Page, Locator
+from playwright.sync_api import Locator, Page
+
 from .base_page import BasePage
 
 
 class SellerPage(BasePage):
-
     # ─── Seller profile header ────────────────────────────────────────────────
     SELLER_LOGO = "[class*='dealer-logo'] img, [class*='seller-logo'] img, .company-logo img"
     SELLER_NAME = "h1, [class*='dealer-name'], [class*='seller-name'], .company-name"
@@ -26,12 +26,16 @@ class SellerPage(BasePage):
     # ─── Contact information ──────────────────────────────────────────────────
     SELLER_PHONE = "a[href^='tel:'], [class*='phone'], [data-phone]"
     SELLER_EMAIL = "a[href^='mailto:'], [class*='email'], [data-email]"
-    SELLER_WEBSITE = "a[href^='http']:not([href*='truck1']):not([href^='tel']):not([href^='mailto'])"
+    SELLER_WEBSITE = (
+        "a[href^='http']:not([href*='truck1']):not([href^='tel']):not([href^='mailto'])"
+    )
     SELLER_ADDRESS = "[class*='address'], [class*='location'], [itemprop='address']"
     SELLER_MAP = ".map, [class*='map'], [id*='map']"
 
     # ─── Action buttons ──────────────────────────────────────────────────────
-    BTN_CONTACT = "button:has-text('Contact'), a:has-text('Contact dealer'), [data-action='contact-dealer']"
+    BTN_CONTACT = (
+        "button:has-text('Contact'), a:has-text('Contact dealer'), [data-action='contact-dealer']"
+    )
     BTN_FOLLOW = "button:has-text('Follow'), button[class*='follow'], [data-action='follow']"
     BTN_SHARE_SELLER = "button:has-text('Share'), [aria-label*='share'], [class*='share']"
 

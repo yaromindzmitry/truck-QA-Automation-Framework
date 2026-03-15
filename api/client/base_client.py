@@ -13,8 +13,9 @@ Example usage:
     assert resp.status_code == 200
 """
 
-import os
 import logging
+import os
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -101,18 +102,14 @@ class Truck1ApiClient:
     def get(self, path: str, params: dict = None, **kwargs) -> requests.Response:
         url = self._url(path)
         logger.debug("GET %s params=%s", url, params)
-        resp = self.session.get(
-            url, params=params, timeout=self.timeout, **kwargs
-        )
+        resp = self.session.get(url, params=params, timeout=self.timeout, **kwargs)
         self._log_response(resp)
         return resp
 
     def post(self, path: str, json: dict = None, data: dict = None, **kwargs) -> requests.Response:
         url = self._url(path)
         logger.debug("POST %s json=%s", url, json)
-        resp = self.session.post(
-            url, json=json, data=data, timeout=self.timeout, **kwargs
-        )
+        resp = self.session.post(url, json=json, data=data, timeout=self.timeout, **kwargs)
         self._log_response(resp)
         return resp
 

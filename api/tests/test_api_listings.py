@@ -18,13 +18,15 @@ Coverage:
 """
 
 import re
+
 import pytest
-from api.client import ListingsClient, REACHABLE
+
+from api.client import REACHABLE, ListingsClient
 from api.models import ContactFormSchema, LeasingRequestSchema
 from utils.helpers import generate_test_contact
 
-
 # ── Fixtures: get real listing ID from catalog ─────────────────────
+
 
 @pytest.fixture(scope="module")
 def first_sale_listing_url(api_client_module: ListingsClient):
@@ -69,7 +71,6 @@ def first_lease_listing_url(api_client_module: ListingsClient):
 @pytest.mark.api
 @pytest.mark.api_listings
 class TestApiListings:
-
     # ── TC_ALIST01 / TC_ALIST02: Listings are accessible ─────────────────────────
 
     def test_sale_listing_returns_200(
@@ -77,64 +78,56 @@ class TestApiListings:
     ):
         """Page of real listing (sale) returns 200/202."""
         resp = api_client.get(first_sale_listing_url)
-        assert resp.status_code in REACHABLE, (
-            f"Sale listing {first_sale_listing_url} returned {resp.status_code}"
-        )
+        assert (
+            resp.status_code in REACHABLE
+        ), f"Sale listing {first_sale_listing_url} returned {resp.status_code}"
 
     def test_lease_listing_returns_200(
         self, api_client: ListingsClient, first_lease_listing_url: str
     ):
         """Page real leasing listings → 200/202."""
         resp = api_client.get(first_lease_listing_url)
-        assert resp.status_code in REACHABLE, (
-            f"Lease listing {first_lease_listing_url} returned {resp.status_code}"
-        )
+        assert (
+            resp.status_code in REACHABLE
+        ), f"Lease listing {first_lease_listing_url} returned {resp.status_code}"
 
     # ── TC_ALIST03: 404 for non-existent ──────────────────────────────────
 
     def test_nonexistent_listing_404(self, api_client: ListingsClient):
         """Non-existent and slug listings → 404/410 or CF challenge (202). Not 500."""
         resp = api_client.get_listing("nonexistent-truck-xyz-000000")
-        assert resp.status_code not in (500, 502, 503), (
-            f"Non-existent listing caused server error: {resp.status_code}"
-        )
-        assert resp.status_code in (*REACHABLE, 404, 410), (
-            f"Expected 404/410 or CF challenge, got {resp.status_code}"
-        )
+        assert resp.status_code not in (
+            500,
+            502,
+            503,
+        ), f"Non-existent listing caused server error: {resp.status_code}"
+        assert resp.status_code in (
+            *REACHABLE,
+            404,
+            410,
+        ), f"Expected 404/410 or CF challenge, got {resp.status_code}"
 
     # ── TC_ALIST04: HTML content ──────────────────────────────────────────
 
-    def test_listing_html_has_title(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_listing_html_has_title(self, api_client: ListingsClient, first_sale_listing_url: str):
         """HTML pages listings contains tag <title>."""
         resp = api_client.get(first_sale_listing_url)
         assert "<title>" in resp.text, "No <title> tag in listing HTML"
 
-    def test_listing_html_has_h1(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_listing_html_has_h1(self, api_client: ListingsClient, first_sale_listing_url: str):
         """HTML pages listings contains tag <h1>."""
         resp = api_client.get(first_sale_listing_url)
         assert "<h1" in resp.text, "No <h1> tag in listing HTML"
 
-    def test_listing_html_has_price(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_listing_html_has_price(self, api_client: ListingsClient, first_sale_listing_url: str):
         """HTML pages listings contains  (€ or  and   and)."""
         resp = api_client.get(first_sale_listing_url)
-        has_price = (
-            "€" in resp.text
-            or "EUR" in resp.text
-            or bool(re.search(r'\d{4,}', resp.text))
-        )
+        has_price = "€" in resp.text or "EUR" in resp.text or bool(re.search(r"\d{4,}", resp.text))
         assert has_price, "No price information found in listing HTML"
 
     # ── TC_ALIST05 / TC_ALIST06 / TC_ALIST07: Contact form API ───────────────
 
-    def test_contact_endpoint_exists(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_contact_endpoint_exists(self, api_client: ListingsClient, first_sale_listing_url: str):
         """nt Contact the seller is present ( 405 Method Not Allowed)."""
         # Extract ID  iz URL
         match = re.search(r"/trucks-for-sale/(.+)", first_sale_listing_url)
@@ -149,14 +142,20 @@ class TestApiListings:
             email=contact.email,
             message=contact.message,
         )
-        # 200/201 = success, 422/400 = val and yes and , 404 = endpoint  
+        # 200/201 = success, 422/400 = val and yes and , 404 = endpoint
         #  and  and  e om 500 (server error)
-        assert resp.status_code != 500, (
-            f"Contact form caused 500 Internal Server Error"
-        )
-        assert resp.status_code in (200, 201, 302, 400, 401, 403, 404, 405, 422), (
-            f"Unexpected status code: {resp.status_code}"
-        )
+        assert resp.status_code != 500, "Contact form caused 500 Internal Server Error"
+        assert resp.status_code in (
+            200,
+            201,
+            302,
+            400,
+            401,
+            403,
+            404,
+            405,
+            422,
+        ), f"Unexpected status code: {resp.status_code}"
 
     def test_contact_form_schema_validation(self):
         """ContactFormSchema correctly validates data."""
@@ -209,9 +208,10 @@ class TestApiListings:
         # Expected:  and ku validation error or from,  200  and   500
         if resp.status_code == 404:
             pytest.skip("Contact API endpoint not found")
-        assert resp.status_code in (400, 422), (
-            f"Missing email was accepted with status {resp.status_code}"
-        )
+        assert resp.status_code in (
+            400,
+            422,
+        ), f"Missing email was accepted with status {resp.status_code}"
 
     # ── TC_ALIST09 / TC_ALIST10: Leasing form ────────────────────────────────
 
@@ -235,9 +235,7 @@ class TestApiListings:
         is_valid, errors = invalid.is_valid()
         assert not is_valid
 
-    def test_leasing_form_endpoint(
-        self, api_client: ListingsClient, first_lease_listing_url: str
-    ):
+    def test_leasing_form_endpoint(self, api_client: ListingsClient, first_lease_listing_url: str):
         """nt Request a leasing offer  request."""
         match = re.search(r"/trucks-for-lease/(.+)", first_lease_listing_url)
         if not match:
@@ -257,9 +255,7 @@ class TestApiListings:
 
     # ── TC_ALIST11: Page seller ────────────────────────────────────────
 
-    def test_dealer_page_accessible(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_dealer_page_accessible(self, api_client: ListingsClient, first_sale_listing_url: str):
         """Page seller is available through ku  iz listings."""
         resp_listing = api_client.get(first_sale_listing_url)
         # Find ku  dealer  in HTML
@@ -272,28 +268,19 @@ class TestApiListings:
 
         dealer_url = dealer_urls[0]
         resp = api_client.get(dealer_url)
-        assert resp.status_code == 200, (
-            f"Dealer page {dealer_url} returned {resp.status_code}"
-        )
+        assert resp.status_code == 200, f"Dealer page {dealer_url} returned {resp.status_code}"
 
     # ── TC_ALIST13: Meta-tag and  ─────────────────────────────────────────────────
 
-    def test_listing_has_og_tags(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_listing_has_og_tags(self, api_client: ListingsClient, first_sale_listing_url: str):
         """HTML contains Open Graph meta-tag and  for  and ."""
         resp = api_client.get(first_sale_listing_url)
-        has_og = (
-            'property="og:title"' in resp.text
-            or "og:title" in resp.text
-        )
+        has_og = 'property="og:title"' in resp.text or "og:title" in resp.text
         assert has_og, "No Open Graph tags found in listing HTML"
 
-    def test_listing_has_canonical(
-        self, api_client: ListingsClient, first_sale_listing_url: str
-    ):
+    def test_listing_has_canonical(self, api_client: ListingsClient, first_sale_listing_url: str):
         """HTML contains canonical ku."""
         resp = api_client.get(first_sale_listing_url)
-        assert 'rel="canonical"' in resp.text or "canonical" in resp.text.lower(), (
-            "No canonical link in listing HTML"
-        )
+        assert (
+            'rel="canonical"' in resp.text or "canonical" in resp.text.lower()
+        ), "No canonical link in listing HTML"

@@ -10,25 +10,25 @@ Implemented as dataclass + static from_dict method for convenience.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List
-
 
 # ── Listing ────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ListingSchema:
     """Schema of a single listing from API."""
-    id: Optional[str | int] = None
-    title: Optional[str] = None
-    price: Optional[float | str] = None
-    year: Optional[int] = None
-    make: Optional[str] = None
-    model: Optional[str] = None
-    mileage: Optional[int] = None
-    country: Optional[str] = None
-    images: List[str] = field(default_factory=list)
-    url: Optional[str] = None
-    category: Optional[str] = None
+
+    id: str | int | None = None
+    title: str | None = None
+    price: float | str | None = None
+    year: int | None = None
+    make: str | None = None
+    model: str | None = None
+    mileage: int | None = None
+    country: str | None = None
+    images: list[str] = field(default_factory=list)
+    url: str | None = None
+    category: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingSchema":
@@ -58,14 +58,16 @@ class ListingSchema:
 
 # ── Catalog (list of listings) ───────────────────────────────────────────────
 
+
 @dataclass
 class CatalogResponseSchema:
     """Schema of catalog response."""
-    total: Optional[int] = None
-    page: Optional[int] = None
-    per_page: Optional[int] = None
-    items: List[ListingSchema] = field(default_factory=list)
-    has_next_page: Optional[bool] = None
+
+    total: int | None = None
+    page: int | None = None
+    per_page: int | None = None
+    items: list[ListingSchema] = field(default_factory=list)
+    has_next_page: bool | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "CatalogResponseSchema":
@@ -89,9 +91,11 @@ class CatalogResponseSchema:
 
 # ── Contact form ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class ContactFormSchema:
     """Schema of Contact the seller form request."""
+
     listing_id: str
     name: str
     email: str
@@ -113,17 +117,19 @@ class ContactFormSchema:
 
 # ── Leasing form ────────────────────────────────────────────────────────────
 
+
 @dataclass
 class LeasingRequestSchema:
     """Schema of Request a leasing offer form request."""
+
     listing_id: str
     name: str
     email: str
     phone: str = ""
     company: str = ""
     message: str = ""
-    down_payment: Optional[float] = None
-    term_months: Optional[int] = None
+    down_payment: float | None = None
+    term_months: int | None = None
 
     def is_valid(self) -> tuple[bool, list]:
         errors = []
@@ -138,11 +144,13 @@ class LeasingRequestSchema:
 
 # ── API error ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ApiErrorSchema:
     """Schema of API error."""
+
     status_code: int
-    message: Optional[str] = None
+    message: str | None = None
     errors: dict = field(default_factory=dict)
 
     @classmethod

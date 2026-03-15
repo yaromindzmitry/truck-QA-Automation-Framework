@@ -1,8 +1,8 @@
 """Helper utilities for truck1.eu tests."""
 
+from dataclasses import dataclass
 import random
 import string
-from dataclasses import dataclass
 
 # Supported locales on truck1.eu
 LOCALES = ["en", "de", "pl", "lt", "lv", "ee", "ru", "cs", "sk", "ro", "bg"]
@@ -42,5 +42,6 @@ def get_locale_urls(path: str = "") -> list[tuple[str, str]]:
 def extract_number(text: str) -> int:
     """Extract first number from string (for ad counters)."""
     import re
+
     numbers = re.findall(r"\d+", text.replace(",", "").replace(" ", ""))
     return int(numbers[0]) if numbers else 0

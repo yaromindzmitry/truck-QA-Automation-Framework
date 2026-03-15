@@ -10,11 +10,11 @@ Covers:
 """
 
 import requests
+
 from .base_client import Truck1ApiClient
 
 
 class ListingsClient(Truck1ApiClient):
-
     # ── Catalog ───────────────────────────────────────────────────────────────
 
     def get_catalog_page(

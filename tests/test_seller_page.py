@@ -19,14 +19,14 @@ Coverage:
   TC_SELL15  No critical errors on page
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import CatalogPage, ListingPage, SellerPage
 
 
 @pytest.mark.seller
 class TestSellerPage:
-
     @pytest.fixture(autouse=True)
     def open_seller_page(self, page: Page, catalog_url: str):
         """
@@ -50,8 +50,9 @@ class TestSellerPage:
 
     def test_seller_page_loads(self, page: Page):
         """Page seller loads without errors."""
-        seller = SellerPage(page)
-        assert not page.locator(".error-page, h1:has-text('404'), [class*='error-500']").is_visible(timeout=1000)
+        assert not page.locator(".error-page, h1:has-text('404'), [class*='error-500']").is_visible(
+            timeout=1000
+        )
         expect(page.locator("h1").first).to_be_visible()
 
     def test_seller_name_visible(self, page: Page):
@@ -220,15 +221,12 @@ class TestSellerPage:
 
         # Soft check — tooltips can be implemented differently
         if not tooltip_visible:
-            # Verify title attribute as fallback
-            title_attr = triggers.first.get_attribute("title")
-            assert title_attr or True  # pass — tooltip through title not visible in DOM
+            pass  # tooltip through title not visible in DOM — soft check
 
     # ── TC_SELL11: Filter listings ─────────────────────────────────────────
 
     def test_filter_by_ad_type(self, page: Page):
         """Filtering of listings seller by type (sale/lease)."""
-        seller = SellerPage(page)
         for_sale_btn = page.locator("button:has-text('For sale'), a:has-text('For sale')").first
         if not for_sale_btn.is_visible(timeout=3000):
             pytest.skip("Ad type filter not found on seller page")

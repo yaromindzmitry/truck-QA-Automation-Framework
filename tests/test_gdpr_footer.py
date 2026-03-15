@@ -16,14 +16,14 @@ Coverage:
   TC_LOCALE  Language change works
 """
 
+from playwright.sync_api import BrowserContext, Page, expect
 import pytest
-from playwright.sync_api import Page, expect, BrowserContext
-from pages import HomePage, BasePage
+
+from pages import BasePage
 
 
 @pytest.mark.gdpr
 class TestGDPR:
-
     @pytest.fixture
     def fresh_page(self, context: BrowserContext, base_url: str, locale: str):
         """New page without accepted cookies — GDPR should appear."""
@@ -81,7 +81,6 @@ class TestGDPR:
 
 @pytest.mark.footer
 class TestFooter:
-
     def test_footer_visible(self, page: Page):
         """Footer is present on home page."""
         base = BasePage(page)
@@ -111,7 +110,7 @@ class TestFooter:
         base.scroll_to_bottom()
         links = base.get_footer_links()
         count = min(links.count(), 10)  # check first 10
-        broken = []     # href is present, but invalid (#, "", javascript:)
+        broken = []  # href is present, but invalid (#, "", javascript:)
         onclick_only = []  # href is missing completely (onclick-navigation)
         for i in range(count):
             href = links.nth(i).get_attribute("href")
@@ -121,9 +120,7 @@ class TestFooter:
             elif href.strip() in ("#", "javascript:void(0)", "javascript:", ""):
                 broken.append(f"Link {i}: href='{href}'")
         # Fail only on really broken links (href=#, empty, etc.)
-        assert len(broken) == 0, (
-            f"Footer has broken hrefs (use '#' or empty): {broken}"
-        )
+        assert len(broken) == 0, f"Footer has broken hrefs (use '#' or empty): {broken}"
         # Inform about onclick-only links (not fail, but for information)
         if onclick_only:
             pytest.skip(
@@ -136,13 +133,16 @@ class TestFooter:
         base = BasePage(page)
         base.scroll_to_bottom()
         footer_text = page.locator(base.FOOTER).first.inner_text()
-        has_copyright = "©" in footer_text or "copyright" in footer_text.lower() or "truck1" in footer_text.lower()
+        has_copyright = (
+            "©" in footer_text
+            or "copyright" in footer_text.lower()
+            or "truck1" in footer_text.lower()
+        )
         assert has_copyright, "Copyright text not found in footer"
 
 
 @pytest.mark.home
 class TestFavoritesSection:
-
     def test_favorites_page_loads(self, page: Page, base_url: str, locale: str):
         """Section 'Favorites' loads."""
         page.goto(f"{base_url}/{locale}/favourites", wait_until="domcontentloaded", timeout=30_000)
@@ -160,9 +160,12 @@ class TestFavoritesSection:
             pytest.skip("CF challenge / empty page — run in --headed mode")
 
         # Extended selectors for empty-state (different sites have different classes)
-        has_cards = page.locator(
-            ".listing-card, [class*='listing-item'], [class*='ad-card'], article"
-        ).count() > 0
+        has_cards = (
+            page.locator(
+                ".listing-card, [class*='listing-item'], [class*='ad-card'], article"
+            ).count()
+            > 0
+        )
         has_empty_msg = page.locator(
             "[class*='empty'], [class*='no-results'], [class*='no-items'], "
             "[class*='placeholder'], p:has-text('No'), h2:has-text('No'), "
@@ -181,7 +184,6 @@ class TestFavoritesSection:
 
 @pytest.mark.home
 class TestCompareSection:
-
     def test_compare_page_loads(self, page: Page, base_url: str, locale: str):
         """Section 'Compare' loads."""
         page.goto(f"{base_url}/{locale}/compare", wait_until="domcontentloaded", timeout=30_000)
@@ -198,7 +200,9 @@ class TestCompareSection:
         if len(body_text.strip()) < 50:
             pytest.skip("CF challenge / empty page — run in --headed mode")
 
-        has_table = page.locator("table, [class*='compare-table'], [class*='comparison']").is_visible(timeout=2000)
+        has_table = page.locator(
+            "table, [class*='compare-table'], [class*='comparison']"
+        ).is_visible(timeout=2000)
         has_empty_msg = page.locator(
             "[class*='empty'], p:has-text('No'), h2:has-text('No'), "
             "[class*='no-items'], [class*='placeholder'], div:has-text('no items')"
@@ -215,7 +219,6 @@ class TestCompareSection:
 
 @pytest.mark.locale
 class TestLocale:
-
     @pytest.mark.parametrize("target_locale", ["en", "de", "pl", "ru"])
     def test_locale_pages_load(self, page: Page, base_url: str, target_locale: str):
         """Main pages in different locales load without errors."""

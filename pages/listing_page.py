@@ -10,12 +10,12 @@ Covers:
   - "Contact the seller" form
 """
 
-from playwright.sync_api import Page, Locator, expect
+from playwright.sync_api import Locator, Page
+
 from .base_page import BasePage
 
 
 class ListingPage(BasePage):
-
     # ─── Breadcrumbs ─────────────────────────────────────────────────────────
     BREADCRUMBS = ".breadcrumb, [class*='breadcrumb'], nav[aria-label*='breadcrumb']"
     BREADCRUMB_LINKS = ".breadcrumb a, [class*='breadcrumb'] a"
@@ -31,17 +31,25 @@ class ListingPage(BasePage):
     PHOTO_THUMBNAILS = ".gallery__thumbs img, [class*='thumbnail'] img, .swiper-thumbs img"
     GALLERY_PREV = ".gallery .swiper-button-prev, [class*='gallery'] [aria-label='Previous']"
     GALLERY_NEXT = ".gallery .swiper-button-next, [class*='gallery'] [aria-label='Next']"
-    FULLSCREEN_BTN = "[class*='fullscreen'], [aria-label*='fullscreen'], button:has-text('Fullscreen')"
+    FULLSCREEN_BTN = (
+        "[class*='fullscreen'], [aria-label*='fullscreen'], button:has-text('Fullscreen')"
+    )
 
     # ─── Action buttons ──────────────────────────────────────────────────────
-    BTN_ADD_FAVORITES = "button[class*='favourit'], [aria-label*='favourit'], button:has-text('Add to favourites')"
-    BTN_COMPARE_ADD = "button[class*='compare'], [aria-label*='compare'], button:has-text('Compare')"
+    BTN_ADD_FAVORITES = (
+        "button[class*='favourit'], [aria-label*='favourit'], button:has-text('Add to favourites')"
+    )
+    BTN_COMPARE_ADD = (
+        "button[class*='compare'], [aria-label*='compare'], button:has-text('Compare')"
+    )
     BTN_SHARE = "button:has-text('Share'), [aria-label*='share'], [class*='share']"
     BTN_PRINT = "button:has-text('Print'), [aria-label*='print'], [class*='print']"
     BTN_REPORT = "button:has-text('Report'), a:has-text('Report this ad')"
 
     # ─── Contact seller ──────────────────────────────────────────────────────
-    BTN_CONTACT_SELLER = "button:has-text('Contact'), a:has-text('Contact the seller'), [data-action='contact']"
+    BTN_CONTACT_SELLER = (
+        "button:has-text('Contact'), a:has-text('Contact the seller'), [data-action='contact']"
+    )
     BTN_CALL_SELLER = "a[href^='tel:'], button:has-text('Call'), [class*='phone-btn']"
     SELLER_PHONE = "a[href^='tel:'], [class*='phone'], [data-phone]"
     SELLER_NAME = "[class*='seller-name'], [class*='dealer-name'], .seller h2, .seller h3"
@@ -56,7 +64,9 @@ class ListingPage(BasePage):
     FORM_FIELD_NAME = "input[name*='name'], input[placeholder*='name'], #contact-name"
     FORM_FIELD_EMAIL = "input[type='email'], input[name*='email'], #contact-email"
     FORM_FIELD_PHONE = "input[type='tel'], input[name*='phone'], #contact-phone"
-    FORM_FIELD_MESSAGE = "textarea[name*='message'], textarea[placeholder*='message'], #contact-message"
+    FORM_FIELD_MESSAGE = (
+        "textarea[name*='message'], textarea[placeholder*='message'], #contact-message"
+    )
     FORM_SUBMIT = "button[type='submit']:has-text('Send'), button:has-text('Send message')"
     FORM_SUCCESS = "[class*='success'], [class*='thank'], .form-success, [data-status='sent']"
     FORM_ERROR = "[class*='error'], .form-error, [role='alert']"
@@ -166,7 +176,9 @@ class ListingPage(BasePage):
         self.page.locator(self.CONTACT_POPUP_CLOSE).first.click()
         return self
 
-    def fill_contact_form(self, name: str, email: str, phone: str = "", message: str = "Test inquiry"):
+    def fill_contact_form(
+        self, name: str, email: str, phone: str = "", message: str = "Test inquiry"
+    ):
         self.page.locator(self.FORM_FIELD_NAME).first.fill(name)
         self.page.locator(self.FORM_FIELD_EMAIL).first.fill(email)
         if phone:

@@ -17,15 +17,15 @@ Coverage:
   TC_LEASE13  Link to seller works
 """
 
-import pytest
 from playwright.sync_api import Page, expect
+import pytest
+
 from pages import CatalogPage, LeasingListingPage
 from utils.helpers import generate_test_contact
 
 
 @pytest.mark.leasing
 class TestLeasingListingPage:
-
     @pytest.fixture(autouse=True)
     def open_first_leasing_listing(self, page: Page, leasing_page_url: str):
         """Open leasing catalog and navigate to first listing."""
@@ -198,7 +198,9 @@ class TestLeasingListingPage:
 
     def test_no_page_errors(self, page: Page):
         """On leasing page no server errors."""
-        assert not page.locator(".error-page, [class*='error-500'], h1:has-text('404')").is_visible(timeout=1000)
+        assert not page.locator(".error-page, [class*='error-500'], h1:has-text('404')").is_visible(
+            timeout=1000
+        )
 
     def test_specs_block_visible(self, page: Page):
         """Block of characteristics is present."""

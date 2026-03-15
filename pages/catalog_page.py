@@ -10,23 +10,29 @@ Covers:
   - Filters (make, year, price, mileage, country, etc.)
 """
 
-from playwright.sync_api import Page, Locator, expect
+from playwright.sync_api import Locator, Page
+
 from .base_page import BasePage
 
 
 class CatalogPage(BasePage):
-
     # ─── Title / counter ──────────────────────────────────────────────────────
     PAGE_TITLE = "h1, .page-title, [class*='page-title']"
     AD_COUNTER = "[class*='count'], [class*='total'], .results-count, h1 span"
 
     # ─── Toggle buttons ───────────────────────────────────────────────────────
-    BTN_SEE_ALL_SALE = "a:has-text('See all trucks for sale'), [href*='trucks-for-sale']:has-text('See all')"
-    BTN_SEE_ALL_LEASE = "a:has-text('See all trucks for lease'), [href*='trucks-for-lease']:has-text('See all')"
+    BTN_SEE_ALL_SALE = (
+        "a:has-text('See all trucks for sale'), [href*='trucks-for-sale']:has-text('See all')"
+    )
+    BTN_SEE_ALL_LEASE = (
+        "a:has-text('See all trucks for lease'), [href*='trucks-for-lease']:has-text('See all')"
+    )
 
     # ─── TYPE block ───────────────────────────────────────────────────────────
     TYPE_BLOCK = "[class*='type-filter'], [data-filter='type'], fieldset:has-text('Type')"
-    TYPE_OPTIONS = "[class*='type-filter'] label, [data-filter='type'] label, fieldset:has-text('Type') label"
+    TYPE_OPTIONS = (
+        "[class*='type-filter'] label, [data-filter='type'] label, fieldset:has-text('Type') label"
+    )
 
     # ─── Categories ───────────────────────────────────────────────────────────
     CURTAINSIDER_LINK = "a:has-text('Curtainsider'), [href*='curtainsider']"
@@ -50,7 +56,9 @@ class CatalogPage(BasePage):
     FILTER_MILEAGE = "input[name*='mileage'], [data-filter='mileage']"
     FILTER_COUNTRY = "select[name*='country'], [data-filter='country']"
     BTN_APPLY_FILTERS = "button:has-text('Search'), button:has-text('Apply'), button[type='submit']"
-    BTN_RESET_FILTERS = "button:has-text('Reset'), a:has-text('Clear'), button:has-text('Clear all')"
+    BTN_RESET_FILTERS = (
+        "button:has-text('Reset'), a:has-text('Clear'), button:has-text('Clear all')"
+    )
 
     # ─── Sorting ───────────────────────────────────────────────────────────────
     SORT_SELECT = "select[name*='sort'], [data-sort], [class*='sort-select']"

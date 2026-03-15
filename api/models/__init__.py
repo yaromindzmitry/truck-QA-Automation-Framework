@@ -1,9 +1,9 @@
 from .response_schemas import (
-    ListingSchema,
+    ApiErrorSchema,
     CatalogResponseSchema,
     ContactFormSchema,
     LeasingRequestSchema,
-    ApiErrorSchema,
+    ListingSchema,
 )
 
 __all__ = [

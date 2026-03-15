@@ -17,14 +17,14 @@ Coverage:
   TC_SEC13   XSS: img onerror —  from without escaping
   TC_SEC14   XSS: svg onload —  from without escaping
   TC_SEC15   XSS: javascript: URI —  from without escaping
-  TC_SEC16   Path traversal  in URL  opens  system 
+  TC_SEC16   Path traversal  in URL  opens  system
   TC_SEC17   HTTP- PUT  catalog — did not return 2xx
   TC_SEC18   HTTP- DELETE  catalog — did not return 2xx
   TC_SEC19   Null-byte in parameter — does not cause 500
   TC_SEC20   Very heading Host — does not cause 500
   TC_SEC21   CORS —  izOrigin  get ACAO: *
   TC_SEC22   CORS — Origin  from  in Access-Control-Allow-Origin
-  TC_SEC23   CORS — preflight OPTIONS does not disclose  and  and 
+  TC_SEC23   CORS — preflight OPTIONS does not disclose  and  and
   TC_SEC24   CORS — credentials   for  Origin
 
 Note:  Cloudflare:
@@ -38,7 +38,7 @@ Note:  Cloudflare:
 import pytest
 import requests as req_lib
 
-from api.client import ListingsClient, SearchClient, REACHABLE
+from api.client import REACHABLE, ListingsClient, SearchClient
 
 # ── om  ─────────────────────────────────────────────────
 
@@ -48,34 +48,34 @@ REAL_RESPONSE = (200,)
 # Acceptable:  for security-test «server  »
 SAFE_CODES = (*REACHABLE, 400, 404, 410, 422)
 
-# SQL-   and  and  and 
+# SQL-   and  and  and
 SQL_PAYLOADS = [
-    ("basic_quote",        "'"),
-    ("double_quote",       '"'),
-    ("comment_dash",       "' --"),
-    ("comment_hash",       "' #"),
-    ("or_true",            "' OR '1'='1"),
-    ("and_false",          "' AND 1=2 --"),
-    ("union_select",       "' UNION SELECT NULL,NULL,NULL --"),
-    ("union_select_str",   "' UNION SELECT 'a','b','c' --"),
-    ("stacked_drop",       "'; DROP TABLE listings; --"),
-    ("stacked_update",     "'; UPDATE listings SET price=0; --"),
-    ("error_based",        "' AND extractvalue(1,concat(0x7e,version())) --"),
-    ("time_based_pg",      "'; SELECT pg_sleep(0); --"),
-    ("time_based_mysql",   "' AND SLEEP(0) --"),
-    ("null_byte",          "'\x00"),
-    ("hex_encoded",        "0x27204f522031"),
+    ("basic_quote", "'"),
+    ("double_quote", '"'),
+    ("comment_dash", "' --"),
+    ("comment_hash", "' #"),
+    ("or_true", "' OR '1'='1"),
+    ("and_false", "' AND 1=2 --"),
+    ("union_select", "' UNION SELECT NULL,NULL,NULL --"),
+    ("union_select_str", "' UNION SELECT 'a','b','c' --"),
+    ("stacked_drop", "'; DROP TABLE listings; --"),
+    ("stacked_update", "'; UPDATE listings SET price=0; --"),
+    ("error_based", "' AND extractvalue(1,concat(0x7e,version())) --"),
+    ("time_based_pg", "'; SELECT pg_sleep(0); --"),
+    ("time_based_mysql", "' AND SLEEP(0) --"),
+    ("null_byte", "'\x00"),
+    ("hex_encoded", "0x27204f522031"),
 ]
 
 # XSS-
 XSS_PAYLOADS = [
-    ("script_tag",         "<script>alert('xss')</script>"),
-    ("img_onerror",        "<img src=x onerror=alert(1)>"),
-    ("svg_onload",         "<svg onload=alert(1)>"),
-    ("javascript_uri",     "javascript:alert(1)"),
-    ("event_handler",      '" onmouseover="alert(1)'),
-    ("encoded_script",     "%3Cscript%3Ealert(1)%3C/script%3E"),
-    ("double_encoded",     "%253Cscript%253Ealert%25281%2529%253C%252Fscript%253E"),
+    ("script_tag", "<script>alert('xss')</script>"),
+    ("img_onerror", "<img src=x onerror=alert(1)>"),
+    ("svg_onload", "<svg onload=alert(1)>"),
+    ("javascript_uri", "javascript:alert(1)"),
+    ("event_handler", '" onmouseover="alert(1)'),
+    ("encoded_script", "%3Cscript%3Ealert(1)%3C/script%3E"),
+    ("double_encoded", "%253Cscript%253Ealert%25281%2529%253C%252Fscript%253E"),
 ]
 
 #  and URL for test open redirect
@@ -91,6 +91,7 @@ EXTERNAL_URLS = [
 
 # ──   ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def client():
     return ListingsClient(locale="en")
@@ -105,10 +106,10 @@ def search():
 # TC_SEC01–TC_SEC03: Security HTTP-headers
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestSecurityHeaders:
 
+class TestSecurityHeaders:
     def _get_real_headers(self, client: ListingsClient):
-        """ headers only if getor real response ( CF 202)."""
+        """headers only if getor real response ( CF 202)."""
         resp = client.get_homepage()
         if resp.status_code != 200:
             pytest.skip("CF challenge (202) — origin headers not available for inspection")
@@ -152,6 +153,7 @@ class TestSecurityHeaders:
 # TC_SEC04–TC_SEC06: Open Redirect
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestOpenRedirect:
     """
     Open Redirect — , with fromserver  user
@@ -159,8 +161,18 @@ class TestOpenRedirect:
     And for  haring: link  and  as truck1.eu,  leads to evil.com.
     """
 
-    REDIRECT_PARAMS = ["redirect", "next", "url", "return", "returnUrl",
-                       "return_url", "goto", "destination", "target", "redir"]
+    REDIRECT_PARAMS = [
+        "redirect",
+        "next",
+        "url",
+        "return",
+        "returnUrl",
+        "return_url",
+        "goto",
+        "destination",
+        "target",
+        "redir",
+    ]
 
     def _check_no_external_redirect(self, resp: req_lib.Response, external_url: str):
         """Check, that response   rect and   external domain."""
@@ -170,14 +182,13 @@ class TestOpenRedirect:
         #  only truck1.eu  and   Location
         evil_domain = "evil.com"
         assert evil_domain not in location, (
-            f"OPEN REDIRECT DETECTED! "
-            f"Payload '{external_url}' caused redirect to: '{location}'"
+            f"OPEN REDIRECT DETECTED! " f"Payload '{external_url}' caused redirect to: '{location}'"
         )
         # Verify that Location   and   http(s)://domain
         if location.startswith("http"):
-            assert "truck1.eu" in location or location.startswith("/"), (
-                f"Redirect to external domain: '{location}'"
-            )
+            assert "truck1.eu" in location or location.startswith(
+                "/"
+            ), f"Redirect to external domain: '{location}'"
 
     @pytest.mark.security
     @pytest.mark.parametrize("param", ["redirect", "next", "url"])
@@ -192,11 +203,14 @@ class TestOpenRedirect:
         self._check_no_external_redirect(resp, "https://evil.com")
 
     @pytest.mark.security
-    @pytest.mark.parametrize("evil_url", [
-        "//evil.com",
-        r"\/\/evil.com",
-        "https://evil.com%2F@truck1.eu",
-    ])
+    @pytest.mark.parametrize(
+        "evil_url",
+        [
+            "//evil.com",
+            r"\/\/evil.com",
+            "https://evil.com%2F@truck1.eu",
+        ],
+    )
     def test_open_redirect_bypass_variants(self, client: ListingsClient, evil_url: str):
         """TC_SEC04+: Bypass- and  open redirect (protocol-relative, backslash)."""
         resp = client.get(
@@ -208,8 +222,9 @@ class TestOpenRedirect:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TC_SEC07–TC_SEC12: SQL- injection  and 
+# TC_SEC07–TC_SEC12: SQL- injection  and
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestSqlInjection:
     """
@@ -229,22 +244,25 @@ class TestSqlInjection:
             f"SQL INJECTION RISK [{name}]: payload in 'make' caused 500! "
             f"Payload: {repr(payload)}"
         )
-        assert resp.status_code in SAFE_CODES, (
-            f"Unexpected status {resp.status_code} for SQL payload [{name}]"
-        )
+        assert (
+            resp.status_code in SAFE_CODES
+        ), f"Unexpected status {resp.status_code} for SQL payload [{name}]"
 
     # ──  in parameter page (number pages) ─────────────────────────────────────
 
     @pytest.mark.security
-    @pytest.mark.parametrize("name,payload", [
-        ("basic_quote",   "'"),
-        ("union_select",  "1 UNION SELECT NULL --"),
-        ("or_true",       "1 OR 1=1"),
-        ("comment",       "1; --"),
-        ("negative",      "-1"),
-        ("float",         "1.5"),
-        ("expression",    "1+1"),
-    ])
+    @pytest.mark.parametrize(
+        "name,payload",
+        [
+            ("basic_quote", "'"),
+            ("union_select", "1 UNION SELECT NULL --"),
+            ("or_true", "1 OR 1=1"),
+            ("comment", "1; --"),
+            ("negative", "-1"),
+            ("float", "1.5"),
+            ("expression", "1+1"),
+        ],
+    )
     def test_sql_injection_in_page(self, client: ListingsClient, name: str, payload: str):
         """TC_SEC10: SQL injection in parameter page (numeric) does not cause 500."""
         resp = client.get(
@@ -259,14 +277,17 @@ class TestSqlInjection:
     # ──  in  and  parameter year_from, price_from ───────────────────────────
 
     @pytest.mark.security
-    @pytest.mark.parametrize("param,payload", [
-        ("year_from",  "' OR '1'='1"),
-        ("year_from",  "2020 UNION SELECT NULL --"),
-        ("year_to",    "' --"),
-        ("price_from", "0 OR 1=1"),
-        ("price_to",   "' UNION SELECT version() --"),
-        ("mileage_to", "'; DROP TABLE listings; --"),
-    ])
+    @pytest.mark.parametrize(
+        "param,payload",
+        [
+            ("year_from", "' OR '1'='1"),
+            ("year_from", "2020 UNION SELECT NULL --"),
+            ("year_to", "' --"),
+            ("price_from", "0 OR 1=1"),
+            ("price_to", "' UNION SELECT version() --"),
+            ("mileage_to", "'; DROP TABLE listings; --"),
+        ],
+    )
     def test_sql_injection_in_numeric_params(
         self, client: ListingsClient, param: str, payload: str
     ):
@@ -276,8 +297,7 @@ class TestSqlInjection:
             params={param: payload},
         )
         assert resp.status_code != 500, (
-            f"SQL INJECTION RISK: payload in '{param}' caused 500! "
-            f"Payload: {repr(payload)}"
+            f"SQL INJECTION RISK: payload in '{param}' caused 500! " f"Payload: {repr(payload)}"
         )
 
     # ──  in string search ───────────────────────────────────────────────────────
@@ -297,6 +317,7 @@ class TestSqlInjection:
 # TC_SEC13–TC_SEC15: XSS (extended and )
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestXssExtended:
     """
     XSS (Cross-Site Scripting) —   and  JS  in HTML-response.
@@ -310,8 +331,7 @@ class TestXssExtended:
             return  # CF challenge or error —  check content
         # payload     in response
         assert payload not in resp.text, (
-            f"XSS RISK: Payload reflected unescaped in response!\n"
-            f"Payload: {repr(payload)}"
+            f"XSS RISK: Payload reflected unescaped in response!\n" f"Payload: {repr(payload)}"
         )
 
     @pytest.mark.security
@@ -335,6 +355,7 @@ class TestXssExtended:
 # TC_SEC16: Path Traversal
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestPathTraversal:
     """
     Path Traversal —     system  in through ../
@@ -342,26 +363,30 @@ class TestPathTraversal:
     """
 
     @pytest.mark.security
-    @pytest.mark.parametrize("path", [
-        "/../../../etc/passwd",
-        "/..%2F..%2F..%2Fetc%2Fpasswd",
-        "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
-        "/en/../../../etc/shadow",
-        "/en/trucks-for-sale/../../../../etc/passwd",
-    ])
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/../../../etc/passwd",
+            "/..%2F..%2F..%2Fetc%2Fpasswd",
+            "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
+            "/en/../../../etc/shadow",
+            "/en/trucks-for-sale/../../../../etc/passwd",
+        ],
+    )
     def test_path_traversal_no_system_files(self, client: ListingsClient, path: str):
         """TC_SEC16: Path traversal  opens  system ."""
         resp = client.get(path)
         # version   version content /etc/passwd
-        assert "root:x:0:0" not in resp.text, (
-            f"PATH TRAVERSAL VULNERABILITY! /etc/passwd content found for path: {path}"
-        )
+        assert (
+            "root:x:0:0" not in resp.text
+        ), f"PATH TRAVERSAL VULNERABILITY! /etc/passwd content found for path: {path}"
         assert resp.status_code != 500, f"Path traversal caused 500 for: {path}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_SEC17–TC_SEC18: HTTP-
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestHttpMethods:
     """
@@ -380,9 +405,7 @@ class TestHttpMethods:
         resp = client.put(client.locale_path("trucks-for-sale"), json={"price": 0})
         if resp.status_code == 202:
             pytest.skip("CF challenge (202) — request intercepted before origin server")
-        assert resp.status_code != 200, (
-            f"PUT on catalog returned 200 — write access without auth!"
-        )
+        assert resp.status_code != 200, "PUT on catalog returned 200 — write access without auth!"
 
     @pytest.mark.security
     def test_delete_on_catalog_not_allowed(self, client: ListingsClient):
@@ -390,17 +413,15 @@ class TestHttpMethods:
         resp = client.delete(client.locale_path("trucks-for-sale"))
         if resp.status_code == 202:
             pytest.skip("CF challenge (202) — request intercepted before origin server")
-        assert resp.status_code != 200, (
-            f"DELETE on catalog returned 200 — delete without auth!"
-        )
+        assert resp.status_code != 200, "DELETE on catalog returned 200 — delete without auth!"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_SEC19–TC_SEC20: Edge cases
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     @pytest.mark.security
     def test_null_byte_in_parameter(self, client: ListingsClient):
         """TC_SEC19: Null-byte (%00) in parameter does not cause 500."""
@@ -421,14 +442,13 @@ class TestEdgeCases:
         """List and   in search are handled without  server."""
         for payload in ["<>\"'&", "\\", "%", "🚛🔥", "\r\n", "\t"]:
             resp = search.search_listings(payload)
-            assert resp.status_code != 500, (
-                f"Special chars caused 500! Payload: {repr(payload)}"
-            )
+            assert resp.status_code != 500, f"Special chars caused 500! Payload: {repr(payload)}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TC_SEC21–TC_SEC24: CORS (Cross-Origin Resource Sharing)
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestCors:
     """
@@ -441,7 +461,7 @@ class TestCors:
     - ACAO: * + ACAC: true →  combined and ,   and yes str
        in misconfigured server
 
-     and  main, catalog, search — all endpointnt, from 
+     and  main, catalog, search — all endpointnt, from
     contain userto and data or  and    and browser.
     """
 
@@ -449,21 +469,21 @@ class TestCors:
     TRUSTED_ORIGIN = "https://www.truck1.eu"
 
     def _cors_headers(self, resp) -> dict:
-        """ CORS-headers response  in  and  and str."""
+        """CORS-headers response  in  and  and str."""
         return {
-            k.lower(): v for k, v in resp.headers.items()
-            if k.lower().startswith("access-control")
+            k.lower(): v for k, v in resp.headers.items() if k.lower().startswith("access-control")
         }
 
     @pytest.mark.security
-    @pytest.mark.parametrize("path_name,path", [
-        ("homepage",  "/en/"),
-        ("catalog",   "/en/trucks-for-sale"),
-        ("search",    "/en/trucks-for-sale?q=volvo"),
-    ])
-    def test_cors_no_wildcard_acao(
-        self, client: ListingsClient, path_name: str, path: str
-    ):
+    @pytest.mark.parametrize(
+        "path_name,path",
+        [
+            ("homepage", "/en/"),
+            ("catalog", "/en/trucks-for-sale"),
+            ("search", "/en/trucks-for-sale?q=volvo"),
+        ],
+    )
+    def test_cors_no_wildcard_acao(self, client: ListingsClient, path_name: str, path: str):
         """TC_SEC21: Access-Control-Allow-Origin   '*'  and   om endpointnt."""
         resp = client.get(path, headers={"Origin": self.EVIL_ORIGIN})
         cors = self._cors_headers(resp)
@@ -474,13 +494,14 @@ class TestCors:
         )
 
     @pytest.mark.security
-    @pytest.mark.parametrize("path_name,path", [
-        ("homepage", "/en/"),
-        ("catalog",  "/en/trucks-for-sale"),
-    ])
-    def test_cors_origin_not_reflected(
-        self, client: ListingsClient, path_name: str, path: str
-    ):
+    @pytest.mark.parametrize(
+        "path_name,path",
+        [
+            ("homepage", "/en/"),
+            ("catalog", "/en/trucks-for-sale"),
+        ],
+    )
+    def test_cors_origin_not_reflected(self, client: ListingsClient, path_name: str, path: str):
         """TC_SEC22: Origin  from  in Access-Control-Allow-Origin."""
         resp = client.get(path, headers={"Origin": self.EVIL_ORIGIN})
         acao = resp.headers.get("Access-Control-Allow-Origin", "")

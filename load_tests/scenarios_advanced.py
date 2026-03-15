@@ -40,8 +40,8 @@ Execution:
 
 import random
 import time
-from locust import HttpUser, task, between, constant_pacing, events
-from locust.exception import StopUser
+
+from locust import HttpUser, between, events, task
 
 # ──  and  ───────────────────────────────────────────────────────────
 
@@ -82,6 +82,7 @@ def _ok(resp, name):
 
 # ── 1. Spike Test ─────────────────────────────────────────────────────────────
 
+
 class SpikeTest(HttpUser):
     """
     And and  and  to  .
@@ -92,6 +93,7 @@ class SpikeTest(HttpUser):
     -  and  load  catalog  and  search
     - Execution: -u 50 -r 25 -t 3m (str + str)
     """
+
     weight = 1
     wait_time = between(0.5, 2)  #  and user
 
@@ -139,11 +141,12 @@ class SpikeTest(HttpUser):
 
 # ── 2. Soak Test ──────────────────────────────────────────────────────────────
 
+
 class SoakTest(HttpUser):
     """
     Long and  load for  and  yes   iz and  and :
     - to and   and  (response time  e)
-    -  and errors  
+    -  and errors
     - yes and   CDN
 
      and  and to and :
@@ -153,10 +156,11 @@ class SoakTest(HttpUser):
 
     Execution: -u 20 -r 2 -t 30m
     """
+
     weight = 1
     wait_time = between(5, 15)
 
-    #  and  yes and  —  time 
+    #  and  yes and  —  time
     _start_time = None
 
     def on_start(self):
@@ -175,7 +179,7 @@ class SoakTest(HttpUser):
         elapsed = self._elapsed_min()
         with self.client.get(
             f"/{self.locale}/trucks-for-sale",
-            name=f"[Soak] Catalog",
+            name="[Soak] Catalog",
             catch_response=True,
         ) as r:
             _ok(r, "Soak Catalog")
@@ -230,6 +234,7 @@ class SoakTest(HttpUser):
 
 # ── 3. Step Load Test (search to and  yes ) ───────────────────────────────
 
+
 class StepLoadTest(HttpUser):
     """
     Gradual  and to and  for  and  breaking point.
@@ -239,6 +244,7 @@ class StepLoadTest(HttpUser):
     Chart to and  (config through locust stages  in CI):
     0→10 VU  1 min → 10→25  2 min → 25→50  3 min → 50→100  5 min
     """
+
     weight = 1
     wait_time = between(1, 3)
 
@@ -288,6 +294,7 @@ class StepLoadTest(HttpUser):
 
 # ── 4. Content Validator ──────────────────────────────────────────────────────
 
+
 class ContentValidator(HttpUser):
     """
     Check  only status, but also real content page.
@@ -299,6 +306,7 @@ class ContentValidator(HttpUser):
     - Size response > 10KB (not empty page)
     - No signs of CF-challenge  in content
     """
+
     weight = 1
     wait_time = between(3, 6)
 
@@ -314,7 +322,7 @@ class ContentValidator(HttpUser):
             catch_response=True,
         ) as r:
             if r.status_code == 202:
-                r.success()  # CF challenge — 
+                r.success()  # CF challenge —
                 return
             if r.status_code != 200:
                 r.failure(f"Status {r.status_code}")
@@ -410,14 +418,16 @@ class ContentValidator(HttpUser):
 
 # ── 5. API Endpoint Test ──────────────────────────────────────────────────────
 
+
 class ApiEndpointTest(HttpUser):
     """
      and  JSON API endpointnt (search, filter, data listings).
     And and  and  request from SPA (Single Page App) yes.
 
-    Important: API-endpointnt    and  CDN to  and 
+    Important: API-endpointnt    and  CDN to  and
     as HTML-pages, om load  backend .
     """
+
     weight = 1
     wait_time = between(1, 4)
 
@@ -463,7 +473,7 @@ class ApiEndpointTest(HttpUser):
 
     @task(2)
     def api_category_filter(self):
-        """ filter by type ku."""
+        """filter by type ku."""
         bodies = [
             "curtainsider-trucks",
             "refrigerated-trucks",
@@ -517,9 +527,9 @@ class ApiEndpointTest(HttpUser):
 
     @task(1)
     def api_locale_switch(self):
-        """ and   and  — check  rect."""
+        """and   and  — check  rect."""
         src_locale = random.choice(LOCALES)
-        dst_locale = random.choice([l for l in LOCALES if l != src_locale])
+        dst_locale = random.choice([loc for loc in LOCALES if loc != src_locale])
         with self.client.get(
             f"/{dst_locale}/trucks-for-sale",
             name="[API] Locale switch",
@@ -533,6 +543,7 @@ class ApiEndpointTest(HttpUser):
 
 
 # ── frome ─────────────────────────────────────────────────────────────
+
 
 @events.quitting.add_listener
 def on_quitting(environment, **kwargs):

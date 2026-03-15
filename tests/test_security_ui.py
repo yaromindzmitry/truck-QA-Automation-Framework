@@ -18,16 +18,15 @@ Note::
   Therefore these tests get real headers from origin server, not CF 202.
 """
 
-import pytest
 import re
-from playwright.sync_api import Page, expect, Request, Response
-from pages import HomePage
+
+from playwright.sync_api import Page, Request, Response
+import pytest
 
 
 @pytest.mark.security
 @pytest.mark.ui_security
 class TestSecurityUI:
-
     # ── TC_UISEC01: Clickjacking ───────────────────────────────────────────────
 
     def test_clickjacking_iframe_blocked(self, page: Page):
@@ -84,8 +83,12 @@ class TestSecurityUI:
 
         def capture_response(resp: Response):
             if "truck1.eu/en" in resp.url and resp.status == 200:
-                for header in ["x-frame-options", "content-security-policy",
-                               "strict-transport-security", "x-content-type-options"]:
+                for header in [
+                    "x-frame-options",
+                    "content-security-policy",
+                    "strict-transport-security",
+                    "x-content-type-options",
+                ]:
                     val = resp.headers.get(header, "")
                     if val:
                         security_headers[header] = val
@@ -99,8 +102,7 @@ class TestSecurityUI:
 
         # Verify at least one anti-clickjacking header
         has_frame_protection = (
-            "x-frame-options" in security_headers
-            or "content-security-policy" in security_headers
+            "x-frame-options" in security_headers or "content-security-policy" in security_headers
         )
         assert has_frame_protection, (
             "Neither X-Frame-Options nor CSP found in real browser response. "
@@ -129,9 +131,9 @@ class TestSecurityUI:
 
         # Filter - localhost and data: URI do not count
         real_http = [
-            url for url in http_resources
-            if not url.startswith("http://localhost")
-            and not url.startswith("http://127.")
+            url
+            for url in http_resources
+            if not url.startswith("http://localhost") and not url.startswith("http://127.")
         ]
 
         assert len(real_http) == 0, (
@@ -151,20 +153,16 @@ class TestSecurityUI:
         cookies = page.context.cookies()
 
         sensitive_patterns = re.compile(
-            r"session|token|auth|jwt|csrf|user|login|account",
-            re.IGNORECASE
+            r"session|token|auth|jwt|csrf|user|login|account", re.IGNORECASE
         )
 
         violations = []
         for cookie in cookies:
-            if sensitive_patterns.search(cookie["name"]):
-                if not cookie.get("secure", False):
-                    violations.append(
-                        f"{cookie['name']} (domain={cookie.get('domain', '?')})"
-                    )
+            if sensitive_patterns.search(cookie["name"]) and not cookie.get("secure", False):
+                violations.append(f"{cookie['name']} (domain={cookie.get('domain', '?')})")
 
         assert len(violations) == 0, (
-            f"COOKIE SECURITY: Sensitive cookies without Secure flag:\n"
+            "COOKIE SECURITY: Sensitive cookies without Secure flag:\n"
             + "\n".join(f"  - {v}" for v in violations)
         )
 
@@ -181,12 +179,11 @@ class TestSecurityUI:
         violations = []
         for cookie in cookies:
             same_site = cookie.get("sameSite", "")
-            if same_site and same_site.lower() == "none":
-                if not cookie.get("secure", False):
-                    violations.append(cookie["name"])
+            if same_site and same_site.lower() == "none" and not cookie.get("secure", False):
+                violations.append(cookie["name"])
 
         assert len(violations) == 0, (
-            f"COOKIE MISCONFIGURATION: SameSite=None without Secure:\n"
+            "COOKIE MISCONFIGURATION: SameSite=None without Secure:\n"
             + "\n".join(f"  - {v}" for v in violations)
         )
 
@@ -214,8 +211,7 @@ class TestSecurityUI:
         ]
 
         for path in xss_payloads:
-            page.goto(f"https://www.truck1.eu{path}",
-                      wait_until="domcontentloaded", timeout=15_000)
+            page.goto(f"https://www.truck1.eu{path}", wait_until="domcontentloaded", timeout=15_000)
             page.wait_for_timeout(500)
 
         assert not xss_triggered["fired"], (
@@ -290,12 +286,10 @@ class TestSecurityUI:
         page.on("request", on_navigation)
         # Go through several pages
         for path in ["/en", "/en/trucks-for-sale", "/en/trucks-for-lease"]:
-            page.goto(f"https://www.truck1.eu{path}",
-                      wait_until="domcontentloaded", timeout=20_000)
+            page.goto(f"https://www.truck1.eu{path}", wait_until="domcontentloaded", timeout=20_000)
 
-        assert len(sensitive_in_url) == 0, (
-            f"SENSITIVE DATA IN URL detected:\n"
-            + "\n".join(f"  - {u[:200]}" for u in sensitive_in_url[:5])
+        assert len(sensitive_in_url) == 0, "SENSITIVE DATA IN URL detected:\n" + "\n".join(
+            f"  - {u[:200]}" for u in sensitive_in_url[:5]
         )
 
     # ── TC_UISEC09: autocomplete on forms ───────────────────────────────────
@@ -308,8 +302,11 @@ class TestSecurityUI:
         Without this browser may autofill with other's data.
         """
         # Try to open listing and find contact form
-        page.goto("https://www.truck1.eu/en/trucks-for-sale",
-                  wait_until="domcontentloaded", timeout=20_000)
+        page.goto(
+            "https://www.truck1.eu/en/trucks-for-sale",
+            wait_until="domcontentloaded",
+            timeout=20_000,
+        )
 
         # Click on first listing
         card = page.locator("a[href*='/trucks-for-sale/']").first

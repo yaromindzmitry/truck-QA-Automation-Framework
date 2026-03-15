@@ -6,12 +6,12 @@ Inherits from ListingPage, overrides:
   - Leasing-specific blocks (conditions, rates)
 """
 
-from playwright.sync_api import Page, Locator
+from playwright.sync_api import Locator, Page
+
 from .listing_page import ListingPage
 
 
 class LeasingListingPage(ListingPage):
-
     # ─── Leasing blocks ───────────────────────────────────────────────────────
     LEASING_CONDITIONS = "[class*='leasing'], [data-section='leasing-conditions'], .lease-terms"
     LEASING_RATE = "[class*='rate'], [class*='monthly'], .lease-rate, [data-leasing-rate]"
@@ -31,7 +31,9 @@ class LeasingListingPage(ListingPage):
     LEASING_POPUP_TITLE = "[class*='modal'] h2, [class*='modal'] h3, dialog h2"
 
     # ─── "Request a leasing offer" form ───────────────────────────────────────
-    FORM_LEASING = "form[class*='leasing'], form[id*='leasing'], [data-form='leasing'], form[class*='contact']"
+    FORM_LEASING = (
+        "form[class*='leasing'], form[id*='leasing'], [data-form='leasing'], form[class*='contact']"
+    )
     FORM_COMPANY_NAME = "input[name*='company'], input[placeholder*='company'], #leasing-company"
     FORM_CONTACT_PERSON = "input[name*='contact'], input[placeholder*='contact person']"
     FORM_FIELD_NAME = "input[name*='name'], input[placeholder*='name'], #leasing-name"

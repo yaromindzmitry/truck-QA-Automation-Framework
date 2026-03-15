@@ -7,8 +7,9 @@ Contains:
   - element waiting methods
 """
 
-from playwright.sync_api import Page, Locator, expect
 import re
+
+from playwright.sync_api import Locator, Page, expect
 
 
 class BasePage:
