@@ -180,7 +180,7 @@ truck1_qa/
 
 ```bash
 git clone https://github.com/yaromindzmitry/truck-QA-Automation-Framework.git
-cd truck1-qa
+cd truck-QA-Automation-Framework
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 playwright install chromium
