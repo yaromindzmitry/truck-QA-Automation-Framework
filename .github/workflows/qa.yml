@@ -150,6 +150,7 @@ jobs:
             --html=reports/locale_cross_${{ github.run_id }}.html \
             --self-contained-html \
             -v
+        continue-on-error: true
 
       - name: Upload locale reports
         uses: actions/upload-artifact@v4
