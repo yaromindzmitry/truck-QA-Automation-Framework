@@ -94,6 +94,15 @@ def browser_context_args(browser_context_args):
     }
 
 
+CF_TITLES = ("just a moment", "attention required", "checking your browser")
+
+
+def _is_cloudflare_blocked(page) -> bool:
+    """Return True if Cloudflare challenge page is shown."""
+    title = page.title().lower()
+    return any(t in title for t in CF_TITLES)
+
+
 @pytest.fixture
 def page(context: BrowserContext, locale_url: str) -> Page:
     """
@@ -101,6 +110,7 @@ def page(context: BrowserContext, locale_url: str) -> Page:
     - open page immediately on correct locale
     - collect console errors
     - accept GDPR cookies (if banner appears)
+    - skip test if Cloudflare blocks headless browser
     """
     page = context.new_page()
     console_errors = []
@@ -109,6 +119,10 @@ def page(context: BrowserContext, locale_url: str) -> Page:
             if msg.type == "error" else None)
 
     page.goto(locale_url, wait_until="domcontentloaded", timeout=30_000)
+
+    if _is_cloudflare_blocked(page):
+        page.close()
+        pytest.skip("Cloudflare challenge page — skipped in headless CI")
 
     # Close GDPR popup if present
     _accept_gdpr(page)
