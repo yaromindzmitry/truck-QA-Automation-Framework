@@ -1,6 +1,6 @@
 # truck1.eu — QA Automation Framework
 
-[![QA Suite](https://github.com/YOUR_USERNAME/truck1-qa/actions/workflows/qa.yml/badge.svg)](https://github.com/YOUR_USERNAME/truck1-qa/actions)
+[![QA Suite](https://github.com/yaromindzmitry/truck-QA-Automation-Framework/actions/workflows/qa.yml/badge.svg)](https://github.com/yaromindzmitry/truck-QA-Automation-Framework/actions)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue)](https://python.org)
 [![Playwright](https://img.shields.io/badge/playwright-1.50-green)](https://playwright.dev)
 [![pytest](https://img.shields.io/badge/pytest-8.3-orange)](https://pytest.org)
@@ -179,7 +179,7 @@ truck1_qa/
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/truck1-qa.git
+git clone https://github.com/yaromindzmitry/truck-QA-Automation-Framework.git
 cd truck1-qa
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
