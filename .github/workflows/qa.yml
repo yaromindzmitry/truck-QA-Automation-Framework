@@ -112,6 +112,7 @@ jobs:
     name: Locale Smoke Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [lint]
 
     steps:
       - uses: actions/checkout@v4
@@ -165,7 +166,7 @@ jobs:
     name: UI Smoke Tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Run only on manual run or push to main
+    needs: [lint]
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push' ||
@@ -197,7 +198,6 @@ jobs:
             --locale=${{ matrix.locale }} \
             -m "smoke" \
             --browser=chromium \
-            --headed=false \
             --html=reports/ui_smoke_${{ matrix.locale }}_${{ github.run_id }}.html \
             --self-contained-html \
             --reruns=2 \
