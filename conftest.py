@@ -12,8 +12,13 @@ import pytest
 import os
 from datetime import datetime
 from dotenv import load_dotenv
-from playwright.sync_api import Page, BrowserContext
 from api.client import ListingsClient, SearchClient
+
+try:
+    from playwright.sync_api import Page, BrowserContext
+except ImportError:
+    Page = None  # type: ignore[assignment,misc]
+    BrowserContext = None  # type: ignore[assignment,misc]
 
 load_dotenv()
 
