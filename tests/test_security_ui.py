@@ -29,6 +29,11 @@ import pytest
 class TestSecurityUI:
     # ── TC_UISEC01: Clickjacking ───────────────────────────────────────────────
 
+    @pytest.mark.xfail(
+        reason="SEC-BUG-001: X-Frame-Options header missing — site embeds in iframe (Clickjacking). "
+               "Documented in bug_report_security.docx.",
+        strict=True,
+    )
     def test_clickjacking_iframe_blocked(self, page: Page):
         """
         TC_UISEC01: Attempt to embed truck1.eu in <iframe> must be blocked.
@@ -39,6 +44,8 @@ class TestSecurityUI:
 
         Verify through JavaScript: try to load site in iframe
         and check if contentDocument is empty (blocked by browser).
+
+        Known bug: SEC-BUG-001 — X-Frame-Options not set.
         """
         # Create test page with iframe
         page.set_content("""
@@ -340,12 +347,20 @@ class TestSecurityUI:
 
     # ── TC_UISEC10: rel=noopener on external links ───────────────────────────
 
+    @pytest.mark.xfail(
+        reason="SEC-BUG-002: Social media links (FB/IG/TikTok/LinkedIn) use rel='nofollow' "
+               "but missing rel='noopener' — Tabnapping risk. "
+               "Documented in bug_report_security.docx.",
+        strict=True,
+    )
     def test_external_links_have_noopener(self, page: Page):
         """
         TC_UISEC10: External links (<a target='_blank'>) have rel='noopener noreferrer'.
 
         Without noopener — opened page gets access to window.opener
         of parent page and may redirect it (reverse tabnapping).
+
+        Known bug: SEC-BUG-002 — social media links missing rel='noopener'.
         """
         page.goto("https://www.truck1.eu/en", wait_until="domcontentloaded", timeout=20_000)
 
